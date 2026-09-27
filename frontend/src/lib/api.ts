@@ -4,9 +4,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`/api${path}`, {
       ...init, headers: { "Content-Type": "application/json", ...init?.headers },
-      signal: AbortSignal.timeout(15000), cache: "no-store",
+      signal: AbortSignal.timeout(175000), cache: "no-store",
     });
-  } catch { throw new Error("We couldn’t reach MeetGrid. Check your connection and try again."); }
+  } catch { throw new Error("The meeting service is taking too long to wake up. Please try again shortly."); }
   if (!response.ok) {
     const error = await response.json().catch(() => null);
     throw new Error(error?.detail || error?.message || "Something went wrong. Please try again.");
