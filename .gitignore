@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+target/
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
+!.env.local.example
+.runtime/
+backend/data/
+.DS_Store
