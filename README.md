@@ -39,3 +39,21 @@ Interval calculations use half-open ranges (`start < existingEnd && end > existi
 ## Verification
 
 The backend suite covers interval intersection, duration, capacity, opening boundaries, booking conflicts, adjacent bookings, and the conflict demo. The frontend production build passes with Next.js 16 and TypeScript.
+
+## Render Docker deployment (backend)
+
+Create a Render Web Service from this repository, select **Docker**, branch `main`, leave **Root Directory empty**, and use **Dockerfile Path: ./Dockerfile** with **Docker Build Context: .**. Leave the Docker Command empty; the image starts the API automatically. Set the health check path to `/api/rooms`.
+
+The image builds with Maven and Java 21, runs as a non-root user, binds to `0.0.0.0`, and reads Render's `PORT` environment variable (default `10000`).
+
+For an immediate demo, no database variables are needed: H2 is seeded on startup and data resets on restart. For persistent PostgreSQL, set `SPRING_PROFILES_ACTIVE=postgres`, `DB_URL=jdbc:postgresql://HOST:5432/DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in Render. Use the JDBC format for `DB_URL`, not Render's `postgresql://user:password@host/database` URL.
+
+Deploy the Next.js frontend separately and set `API_BASE_URL=https://YOUR-BACKEND.onrender.com` **before building** it, then redeploy the frontend so its API proxy points to Render.
+
+Local Docker check:
+
+```sh
+docker build -t meetgrid-api .
+docker run --rm -p 10000:10000 meetgrid-api
+# Open http://localhost:10000/api/rooms
+```
