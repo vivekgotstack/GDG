@@ -22,7 +22,7 @@ public class MeetGridController {
     public List<MemberView> members() { return availability.list(); }
     @GetMapping("/rooms")
     public List<RoomView> rooms() {
-        return rooms.findAll().stream().sorted(Comparator.comparing(r -> r.name)).map(RoomView::from).toList();
+        return rooms.findByOwnerId(com.meetgrid.config.WorkspaceIdentity.id()).stream().sorted(Comparator.comparing(r -> r.name)).map(RoomView::from).toList();
     }
     @PutMapping("/members/{id}/availability")
     public MemberView update(@PathVariable String id, @Valid @RequestBody AvailabilityUpdate request) { return availability.update(id, request); }

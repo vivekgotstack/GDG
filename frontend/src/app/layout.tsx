@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+import "@fontsource/poppins/latin-400.css";
+import "@fontsource/poppins/latin-500.css";
+import "@fontsource/poppins/latin-600.css";
+import "@fontsource/poppins/latin-700.css";
 import "./globals.css";
+import "./pastel.css";
+import "./product.css";
+import "./public-pages.css";
+import { SessionProvider } from '@/components/product/session';
 export const metadata: Metadata = {
-  title: "MeetGrid — Find your common ground",
-  description: "Find the time. Find the room. One search. A thoughtful meeting planner for student teams.",
+  title: `${process.env.NEXT_PUBLIC_APP_NAME || 'MeetGrid'} — Find your common ground`,
+  description: process.env.NEXT_PUBLIC_APP_TAGLINE || 'One thoughtful workspace for team availability, rooms, and recurring meetings.',
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><SessionProvider>{children}</SessionProvider></body></html>;
 }

@@ -27,9 +27,10 @@ public class MeetingSearchService {
         Set<String> ids = new HashSet<>(request.memberIds());
         if (ids.size() != request.memberIds().size()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose each member only once.");
         if (request.requiredCapacity() < ids.size()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Room capacity must fit all selected members.");
-        List<Member> group = members.findAllById(ids);
+        String owner = com.meetgrid.config.WorkspaceIdentity.id();
+        List<Member> group = members.findByOwnerId(owner).stream().filter(m -> ids.contains(m.id)).toList();
         if (group.size() != ids.size()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more members could not be found.");
-        return findOptions(group, rooms.findAll(), bookings.findAll(), request.durationMinutes(), request.requiredCapacity());
+        return findOptions(group, rooms.findByOwnerId(owner), bookings.findByRoomOwnerId(owner), request.durationMinutes(), request.requiredCapacity());
     }
     public SearchResponse findOptions(List<Member> group, List<Room> rooms, List<RoomBooking> bookings, int duration, int capacity) {
         if (duration < 1) throw new IllegalArgumentException("Duration must be positive.");

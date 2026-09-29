@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Plus, Trash2, LoaderCircle, CalendarDays } from "lucide-react";
 import { Modal } from "./modal";
+import { Button } from "./ui/button";
 import { DAYS, dayName, type Availability, type Member } from "@/lib/types";
 export function AvailabilityEditor({ member, onClose, onSave }: {
   member: Member; onClose: () => void; onSave: (availability: Availability[]) => Promise<void>;
@@ -35,7 +36,7 @@ export function AvailabilityEditor({ member, onClose, onSave }: {
       </fieldset>
       <p className="form-note"><CalendarDays size={15}/> Times repeat weekly. Overlapping ranges are combined.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="button primary" disabled={busy}>{busy && <LoaderCircle className="spin" size={16}/>}Save availability</button></div>
+      <div className="modal-actions"><Button type="button" variant="outline" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" disabled={busy}>{busy && <LoaderCircle className="spin" size={16}/>}Save availability</Button></div>
     </form>
   </Modal>;
 }

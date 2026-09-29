@@ -1,9 +1,15 @@
-import type { Availability, Booking, BookingInput, Member, Room, SearchResult } from "./types";
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+import type { Availability, Booking, BookingInput, Member, MemberInput, Room, RoomInput, SearchResult } from "./types";
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const csrfHeaders: Record<string,string> = {};
+  if (init?.method && !['GET','HEAD'].includes(init.method)) {
+    const csrfResponse = await fetch('/api/auth/csrf', {cache:'no-store',credentials:'same-origin'});
+    if (!csrfResponse.ok) throw new Error('Could not secure this request. Please try again.');
+    const csrf = await csrfResponse.json(); csrfHeaders[csrf.headerName] = csrf.token;
+  }
   let response: Response;
   try {
     response = await fetch(`/api${path}`, {
-      ...init, headers: { "Content-Type": "application/json", ...init?.headers },
+      ...init, credentials:'same-origin', headers: { "Content-Type": "application/json", ...csrfHeaders, ...init?.headers },
       signal: AbortSignal.timeout(175000), cache: "no-store",
     });
   } catch { throw new Error("The meeting service is taking too long to wake up. Please try again shortly."); }
@@ -15,6 +21,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 export const api = {
+  saveMember: (input: MemberInput, id?: string) => request<Member>(id ? `/members/${encodeURIComponent(id)}` : "/members", { method: id ? "PUT" : "POST", body: JSON.stringify(input) }),
+  deleteMember: (id: string) => request<void>(`/members/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  saveRoom: (input: RoomInput, id?: string) => request<Room>(id ? `/rooms/${encodeURIComponent(id)}` : "/rooms", { method: id ? "PUT" : "POST", body: JSON.stringify(input) }),
+  deleteRoom: (id: string) => request<void>(`/rooms/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  cancelBooking: (id: string) => request<void>(`/bookings/${encodeURIComponent(id)}`, { method: "DELETE" }),
   members: () => request<Member[]>("/members"),
   rooms: () => request<Room[]>("/rooms"),
   bookings: () => request<Booking[]>("/bookings"),

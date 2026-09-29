@@ -17,11 +17,11 @@ public class AvailabilityService {
 
     @Transactional(readOnly = true)
     public List<MemberView> list() {
-        return members.findAll().stream().sorted(Comparator.comparing(m -> m.id)).map(MemberView::from).toList();
+        return members.findByOwnerId(com.meetgrid.config.WorkspaceIdentity.id()).stream().sorted(Comparator.comparing(m -> m.name)).map(MemberView::from).toList();
     }
     @Transactional
     public MemberView update(String id, AvailabilityUpdate request) {
-        Member m = members.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found."));
+        Member m = members.findByIdAndOwnerId(id, com.meetgrid.config.WorkspaceIdentity.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found."));
         for (AvailabilityInput a : request.availability()) validateRange(a.startTime(), a.endTime());
         m.availability.clear();
         for (Weekday day : Weekday.values()) {

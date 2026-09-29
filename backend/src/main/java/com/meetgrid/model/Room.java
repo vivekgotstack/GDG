@@ -5,6 +5,7 @@ import java.time.LocalTime;
 
 @Entity @Table(name = "rooms")
 public class Room {
+    @Column(nullable=false,length=40) public String ownerId = "legacy";
     @Id @Column(length = 40) public String id;
     @Column(nullable = false, length = 100) public String name;
     @Column(nullable = false) public int capacity;

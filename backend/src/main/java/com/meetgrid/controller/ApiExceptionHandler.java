@@ -13,6 +13,6 @@ public class ApiExceptionHandler {
     }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail unreadable(HttpMessageNotReadableException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request. Use Monday–Friday and times in HH:mm format.");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request. Use Monday–Sunday and times in HH:mm format.");
     }
 }

@@ -1,2 +1,2 @@
-import MeetGrid from "@/components/meetgrid";
-export default function Home() { return <MeetGrid/>; }
+import { Landing } from '@/components/product/landing';
+export default function Home(){return <Landing/>;}

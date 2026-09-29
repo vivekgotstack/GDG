@@ -7,6 +7,7 @@ import java.util.List;
 @Entity
 @Table(name = "members")
 public class Member {
+    @Column(nullable=false,length=40) public String ownerId = "legacy";
     @Id @Column(length = 40) public String id;
     @Column(nullable = false, length = 80) public String name;
     @Column(nullable = false, length = 20) public String color;

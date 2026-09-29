@@ -1,7 +1,8 @@
 import { ArrowUpRight, Check, ChevronDown, Clock3, DoorOpen, MapPin, Users, X, SearchX } from "lucide-react";
-import { dayName, range, type MeetingOption, type SearchResult } from "@/lib/types";
-export function Results({ result, selected, onSelect, duration, capacity, busy, stale }: {
-  result: SearchResult | null; selected: string; onSelect: (option: MeetingOption) => void; duration: number; capacity: number; busy: boolean; stale: boolean;
+import { dayName, range, type BookingInput, type MeetingOption, type SearchResult } from "@/lib/types";
+import { Button } from "./ui/button";
+export function Results({ result, selected, onSelect, onBook, duration, capacity, busy, stale }: {
+  result: SearchResult | null; selected: string; onSelect: (option: MeetingOption) => void; onBook: (input: BookingInput) => void; duration: number; capacity: number; busy: boolean; stale: boolean;
 }) {
   return <section className={`results-section ${busy ? "is-loading" : ""}`} aria-labelledby="results-heading" aria-busy={busy}>
     <div className="results-heading"><div><div className="heading-line"><h2 id="results-heading">A good time to get together</h2><span className="count-badge">{result?.options.length || 0}</span></div><p>{stale ? "Your settings changed. Run a search to update these options." : `Room for ${capacity}. ${duration} minutes. Everyone included.`}</p></div><span className="verified-label"><Check size={14}/>All constraints checked</span></div>
@@ -14,7 +15,7 @@ export function Results({ result, selected, onSelect, duration, capacity, busy, 
         <div className="result-meta"><span><Check size={13}/>{capacity} seats needed</span><span><Users size={13}/>Everyone is free</span></div>
       </button>
       <div className="room-matches"><div className="room-matches-title"><span><DoorOpen size={14}/>{option.availableRooms.length} suitable {option.availableRooms.length === 1 ? "room" : "rooms"}</span><span className="small-label">READY WHEN YOU ARE</span></div>
-        {option.availableRooms.map(room => <div className="matched-room" key={room.id}><span className="room-icon"><DoorOpen size={18}/></span><div className="matched-room-text"><h4>{room.name}</h4><span><Users size={11}/>{room.capacity} seats<span className="meta-dot">·</span><MapPin size={11}/>{room.location.split(" · ")[0]}</span></div><span className="available-tag"><i/>Available</span></div>)}
+        {option.availableRooms.map(room => <div className="matched-room" data-room={room.id} key={room.id}><span className="room-icon"><DoorOpen size={18}/></span><div className="matched-room-text"><h4>{room.name}</h4><span><Users size={11}/>{room.capacity} seats<span className="meta-dot">·</span><MapPin size={11}/>{room.location.split(" · ")[0]}</span></div><Button variant="outline" size="sm" disabled={busy || stale} aria-label={`Book ${room.name} on ${dayName(option.dayOfWeek)} at ${range(option.startTime,option.endTime)}`} onClick={() => onBook({roomId:room.id,dayOfWeek:option.dayOfWeek,startTime:option.startTime,endTime:option.endTime})}>Book room</Button></div>)}
       </div>
       <details className="rejected-rooms"><summary>Why not the other {option.rejectedRooms.length} {option.rejectedRooms.length === 1 ? "room" : "rooms"}?<ChevronDown size={15}/></summary><div>{option.rejectedRooms.length ? option.rejectedRooms.map(({room,reasons}) => <div className="rejected-room" key={room.id}><span className="reject-icon"><X size={13}/></span><div><strong>{room.name}</strong>{reasons.map(reason => <p key={reason}>{reason}</p>)}</div></div>) : <p className="muted">Every room meets your constraints.</p>}</div></details>
     </article>)}</div>}

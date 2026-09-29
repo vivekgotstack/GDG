@@ -1,8 +1,10 @@
-export const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] as const;
+export const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 export type Day = (typeof DAYS)[number];
 export type Availability = { dayOfWeek: Day; startTime: string; endTime: string };
 export type Member = { id: string; name: string; color: string; availability: Availability[] };
+export type MemberInput = Pick<Member, "name" | "color">;
 export type Room = { id: string; name: string; capacity: number; openTime: string; closeTime: string; location: string };
+export type RoomInput = Omit<Room, "id">;
 export type Booking = Availability & { id: string; roomId: string; roomName: string; source: string };
 export type BookingInput = Availability & { roomId: string };
 export type MeetingOption = Availability & { id: string; availableRooms: Room[]; rejectedRooms: { room: Room; reasons: string[] }[] };

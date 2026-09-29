@@ -1,0 +1,24 @@
+"use client";
+import { useEffect,useState } from 'react';
+import Link from 'next/link';
+import { Check,ArrowUpRight,LoaderCircle } from 'lucide-react';
+import { Card,CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { request } from '@/lib/api';
+import type { Plan } from '@/lib/product';
+import { useSession } from './session';
+import { PublicNav,PublicFooter } from './landing';
+export function Pricing({embedded=false}:{embedded?:boolean}){
+ const [plans,setPlans]=useState<Plan[]>([]);const [error,setError]=useState('');const [busy,setBusy]=useState('');const {user,refresh}=useSession();
+ useEffect(()=>{request<Plan[]>('/plans').then(setPlans).catch(e=>setError(e.message));},[]);
+ async function checkout(id:string){setBusy(id);setError('');try{const result=await request<{url:string}>('/billing/checkout',{method:'POST',body:JSON.stringify({plan:id})});window.location.assign(result.url);}catch(e){setError(e instanceof Error?e.message:'Checkout unavailable.');}finally{setBusy('');}}
+ async function portal(){setBusy('portal');try{const result=await request<{url:string}>('/billing/portal',{method:'POST'});window.location.assign(result.url);}catch(e){setError(e instanceof Error?e.message:'Billing unavailable.');}finally{setBusy('');}}
+ return <div className={embedded?'pricing-embedded':'public-site'}>{!embedded&&<PublicNav/>}<section className="pricing-section"><span className="kicker">A LITTLE STRUCTURE. A LOT OF POSSIBILITY.</span><h1>Room to start.<br/><span className="serif-word">Space to grow.</span></h1><p>Simple monthly plans for your workspace. Start small. Grow when you need to.</p>{error&&<p role="alert" className="form-error">{error}</p>}
+ {!plans.length&&!error&&<p role="status">Loading plans…</p>}
+ <div className="pricing-grid">{plans.map(plan=><Card key={plan.id} className={`pricing-card ${plan.id==='studio'?'featured-plan':''}`}><CardContent><div className="plan-label"><h2>{plan.name}</h2>{plan.id==='studio'&&<Badge>Room to grow</Badge>}</div><p>{plan.id==='free'?'For your first shared plans.':plan.id==='studio'?'For teams finding their rhythm.':'For more people and more spaces.'}</p><div className="plan-price">{new Intl.NumberFormat('en',{style:'currency',currency:plan.currency,maximumFractionDigits:0}).format(plan.monthlyPrice)}<span>/ workspace / month</span></div><ul>{[`${plan.members} team members`,`${plan.rooms} bookable rooms`,`${plan.bookings} active weekly bookings`,'Availability matching & calendar export','Meeting presets & usage insights'].map(item=><li key={item}><Check size={15}/>{item}</li>)}</ul>
+ {!user?<Button asChild variant={plan.id==='studio'?'default':'outline'} className="full-width"><Link href="/signup">Start with a free workspace<ArrowUpRight size={16}/></Link></Button>:user.plan===plan.id?<Button variant="outline" className="full-width" disabled>Current plan</Button>:plan.id==='free'?<Button variant="outline" className="full-width" disabled={!!busy} onClick={()=>void portal()}>Manage subscription</Button>:<Button className="full-width" variant={plan.id==='studio'?'default':'outline'} disabled={!!busy||!plan.checkoutEnabled} onClick={()=>void checkout(plan.id)}>{busy===plan.id&&<LoaderCircle size={15} className="spin"/>}{plan.checkoutEnabled?`Choose ${plan.name}`:'Paid plans opening soon'}</Button>}
+ </CardContent></Card>)}</div><p className="pricing-footnote">Limits apply to saved members, rooms, and active recurring bookings. All plans include a private workspace. Prices exclude any applicable taxes.</p>
+ {embedded&&<div className="billing-tools"><Button variant="outline" disabled={!!busy} onClick={()=>void portal()}>Manage payment & subscription</Button><Button variant="ghost" onClick={()=>void refresh()}>Refresh plan status</Button><p>After checkout, your plan updates when the payment provider confirms your subscription.</p></div>}
+ <div className="pricing-faq"><h2>A few things, before you ask.</h2><details><summary>Can I use this with my own team and rooms?</summary><p>Yes. Names, availability, room details, meeting presets, and your workspace settings are all editable.</p></details><details><summary>What is a team member?</summary><p>A person whose availability you manage in your workspace. Team-directory entries are not individual account invitations.</p></details><details><summary>Are bookings one-off events?</summary><p>Currently, availability and bookings repeat weekly. Calendar export creates recurring events in your workspace timezone.</p></details><details><summary>Can I change plans?</summary><p>Once paid billing is available, use the billing portal to manage your subscription. Existing records are kept if you downgrade, but adding records above your new limits is blocked.</p></details></div></section>{!embedded&&<PublicFooter/>}</div>;
+}

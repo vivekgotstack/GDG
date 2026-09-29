@@ -8,6 +8,11 @@ import java.util.List;
 
 public final class Api {
     private Api() {}
+    public record MemberInput(@NotBlank @Size(max = 80) String name,
+        @NotNull @Pattern(regexp = "sage|lavender|apricot|blue|pink") String color) {}
+    public record RoomInput(@NotBlank @Size(max = 100) String name,
+        @Min(1) @Max(1000) int capacity, @NotNull LocalTime openTime, @NotNull LocalTime closeTime,
+        @NotBlank @Size(max = 100) String location) {}
     public record AvailabilityInput(@NotNull Weekday dayOfWeek, @NotNull LocalTime startTime, @NotNull LocalTime endTime) {}
     public record AvailabilityUpdate(@NotNull @Size(max = 100) List<@NotNull @Valid AvailabilityInput> availability) {}
     public record MemberView(String id, String name, String color, List<AvailabilityInput> availability) {

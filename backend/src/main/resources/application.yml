@@ -1,4 +1,11 @@
 server:
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:8h}
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
   port: ${PORT:8080}
   address: ${BIND_ADDRESS:127.0.0.1}
 spring:
