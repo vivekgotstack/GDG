@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { product } from '@/lib/product';
+import { useSite } from './site-provider';
 
 export function ContactComposer() {
+  const {brand:product}=useSite();
   const [draft, setDraft] = useState('');
   return <section className="contact-composer">
     <span className="kicker">A GOOD CONVERSATION STARTS HERE</span>
@@ -43,12 +44,13 @@ const helpAnswers = [
   { question: 'Why am I not seeing any matching times?', answer: 'Check that every selected person has availability on that day, the requested duration fits the shared free time, and a room has enough seats and is open. Existing reservations can block an otherwise suitable room. Try a shorter duration, a different day, or a smaller participant group.', category: 'Scheduling', href: '/app/planner', action: 'Adjust your search' },
   { question: 'How do timezones and calendar exports work?', answer: 'All schedule times use your workspace timezone. Changing it relabels the existing times rather than converting them. Bookings can be exported as recurring ICS calendar events for import into a calendar application. Exports are snapshots; a later edit in MeetGrid does not update a previously imported event.', category: 'Calendars', href: '/app/bookings', action: 'View calendar exports' },
   { question: 'What are meeting presets and insights?', answer: 'Presets save a meeting name, description, duration, and capacity so you can reuse the setup. Applying a preset opens the planner; you still choose people and a time. Insights compares reserved room hours with configured weekly opening hours. It describes reservations, not measured attendance.', category: 'Product features', href: '/app/presets', action: 'Make a preset' },
-  { question: 'How do plans, upgrades, and cancellation work?', answer: 'Free includes a usable workspace without a card. Plans vary by member, room, and active weekly booking limits. When paid billing is configured, Plans & billing opens checkout or the customer portal. Use that portal to manage a subscription, or contact support if it is unavailable. Returning from checkout alone does not activate a plan; confirmation comes from the payment provider.', category: 'Billing', href: '/refunds', action: 'Read billing guidance' },
+  { question: 'How do plans, upgrades, and cancellation work?', answer: 'You can explore a small preview workspace without a card. Gather, Studio, and Collective vary by people, rooms, active weekly bookings, and saved presets. When paid billing is configured, Plans & billing opens checkout or the customer portal. Use that portal to manage a subscription, or contact support if it is unavailable. Returning from checkout alone does not activate a plan; confirmation comes from the payment provider.', category: 'Billing', href: '/refunds', action: 'Read billing guidance' },
   { question: 'Why do I need to sign in again, and can I reset my password?', answer: 'Sessions expire after inactivity and can also end when the backend restarts. Sign in again to continue. Self-service password reset and email verification are not currently available. If you cannot sign in, contact support from your account email; never send your password.', category: 'Account access', href: '/contact', action: 'Get account help' },
   { question: 'How do I request my data or delete my account?', answer: 'You can edit or remove supported workspace records inside the application. For account deletion, a data copy, or another privacy request, email support with the subject “Privacy request” and identify the account or workspace involved. We may need to verify ownership. Signing out or cancelling billing does not delete your account.', category: 'Privacy', href: '/privacy', action: 'Read the privacy policy' },
 ];
 
 export function HelpAnswers() {
+  const {brand:product}=useSite();
   const [query, setQuery] = useState('');
   const visible = helpAnswers.filter(item => `${item.question} ${item.answer} ${item.category}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <section className="help-answers" aria-labelledby="help-questions">

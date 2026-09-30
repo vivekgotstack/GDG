@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { InformationPage, publicPages } from '@/components/product/public-pages';
+import { InformationPage } from '@/components/product/public-pages';
+import { publicPages } from '@/lib/public-pages';
 import { product } from '@/lib/product';
 
 export const dynamicParams = false;
