@@ -15,7 +15,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 class AdminFlowTest extends PostgresTestSupport {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;
  @Test void rolesContentPricingAndAtomicImport() throws Exception {
-  mvc.perform(get("/api/plans")).andExpect(jsonPath("$[*].monthlyPrice",containsInAnyOrder(7,12,20)));
+  mvc.perform(get("/api/plans")).andExpect(jsonPath("$[*].monthlyPrice",containsInAnyOrder(299,599,999)));
   mvc.perform(get("/api/admin/overview")).andExpect(status().isUnauthorized());
   mvc.perform(post("/api/auth/signup").with(csrf()).contentType("application/json").content("""
    {"email":"vivekni1224@nigam","password":"untrusted-signup-password","name":"Owner","workspaceName":"Test","timezone":"UTC"}
