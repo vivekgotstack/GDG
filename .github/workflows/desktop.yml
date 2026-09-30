@@ -1,0 +1,39 @@
+name: Build MeetGrid Windows installer
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: Hosted HTTPS MeetGrid origin
+        type: string
+        required: true
+      store:
+        description: Include offline WebView2 installer for Store packaging
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+        working-directory: frontend
+      - name: Build installer
+        working-directory: frontend
+        env:
+          MEETGRID_DESKTOP_URL: ${{ inputs.frontend_url }}
+          STORE_BUILD: ${{ inputs.store }}
+        run: |
+          if ($env:STORE_BUILD -eq 'true') { npm run desktop:store } else { npm run desktop:build }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meetgrid-windows-installer
+          path: frontend/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

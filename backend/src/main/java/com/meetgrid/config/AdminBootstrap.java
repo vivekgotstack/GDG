@@ -19,7 +19,7 @@ public class AdminBootstrap implements ApplicationRunner {
   if(existing.isPresent()){
    var account=existing.get();if(account.role.equals("ADMIN"))return;
    if(!passwords.matches(password,account.passwordHash))throw new IllegalStateException("Admin identifier already belongs to an account. Supply that account's password to authorize promotion.");
-   account.role="ADMIN";account.suspended=false;accounts.save(account);return;
+   account.role="ADMIN";account.suspended=false;account.emailVerified=true;accounts.save(account);return;
   }
   var a=new Account();a.id=UUID.randomUUID().toString();a.email=email();a.passwordHash=passwords.encode(password);
   a.displayName="Administrator";a.workspaceName="Administration";a.timezone="Asia/Kolkata";a.role="ADMIN";a.emailVerified=true;accounts.save(a);

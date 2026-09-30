@@ -10,3 +10,5 @@ target/
 .runtime/
 backend/data/
 .DS_Store
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
