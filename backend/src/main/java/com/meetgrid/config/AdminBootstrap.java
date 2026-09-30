@@ -22,6 +22,6 @@ public class AdminBootstrap implements ApplicationRunner {
    account.role="ADMIN";account.suspended=false;accounts.save(account);return;
   }
   var a=new Account();a.id=UUID.randomUUID().toString();a.email=email();a.passwordHash=passwords.encode(password);
-  a.displayName="Administrator";a.workspaceName="Administration";a.timezone="Asia/Kolkata";a.role="ADMIN";accounts.save(a);
+  a.displayName="Administrator";a.workspaceName="Administration";a.timezone="Asia/Kolkata";a.role="ADMIN";a.emailVerified=true;accounts.save(a);
  }
 }

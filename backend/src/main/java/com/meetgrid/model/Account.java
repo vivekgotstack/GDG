@@ -14,4 +14,8 @@ public class Account {
  @Column(nullable=false) public long billingEventTime;
  @Column(nullable=false,length=20) public String role="USER";
  @Column(nullable=false) public boolean suspended=false;
+ @Column(nullable=false) public boolean emailVerified=false;
+ @Column(nullable=false) public boolean hasPassword=true;
+ @Column(unique=true,length=100) public String clerkSubject;
+ @Column(nullable=false) public long authVersion=0;
 }

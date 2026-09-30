@@ -19,34 +19,30 @@ import java.util.*;
 
 @RestController @RequestMapping("/api")
 public class AuthController {
- private final AccountRepository accounts; private final PasswordEncoder encoder; private final SecurityContextRepository contexts;private final com.meetgrid.config.AdminBootstrap bootstrap;
- public AuthController(AccountRepository a,PasswordEncoder p,SecurityContextRepository c,com.meetgrid.config.AdminBootstrap b){accounts=a;encoder=p;contexts=c;bootstrap=b;}
- public record Signup(@NotBlank @Email @Size(max=254) String email,@NotBlank @Size(min=8,max=72) String password,@NotBlank @Size(max=80) String name,@NotBlank @Size(max=100) String workspaceName,@NotBlank @Size(max=80) String timezone){}
+ private final AccountRepository accounts; private final PasswordEncoder encoder; private final com.meetgrid.config.SessionLogin sessions;private final com.meetgrid.service.AccountSecurity security;private final com.meetgrid.service.RateLimits limits;private final com.meetgrid.config.AdminBootstrap bootstrap;
+ public AuthController(AccountRepository a,PasswordEncoder p,com.meetgrid.config.SessionLogin c,com.meetgrid.config.AdminBootstrap b,com.meetgrid.service.AccountSecurity s,com.meetgrid.service.RateLimits l){accounts=a;encoder=p;sessions=c;bootstrap=b;security=s;limits=l;}
+ public record Signup(@NotBlank @Email @Size(max=254) String email,@NotBlank @Size(min=12,max=72) String password,@NotBlank @Size(max=80) String name,@NotBlank @Size(max=100) String workspaceName,@NotBlank @Size(max=80) String timezone){}
  public record Login(@NotBlank @Email @Size(max=254) String email,@NotBlank @Size(max=72) String password){}
  public record Profile(@NotBlank @Size(max=80) String name,@NotBlank @Size(max=100) String workspaceName,@NotBlank @Size(max=80) String timezone){}
- public record UserView(String id,String email,String name,String workspaceName,String timezone,String plan,String role){static UserView from(Account a){return new UserView(a.id,a.email,a.displayName,a.workspaceName,a.timezone,a.plan,a.role);}}
+ public record UserView(String id,String email,String name,String workspaceName,String timezone,String plan,String role,boolean emailVerified,boolean hasPassword,boolean socialLinked){static UserView from(Account a){return new UserView(a.id,a.email,a.displayName,a.workspaceName,a.timezone,a.plan,a.role,a.emailVerified,a.hasPassword,a.clerkSubject!=null);}}
  @GetMapping("/health") public Map<String,String> health(){return Map.of("status","ok");}
  @GetMapping("/auth/csrf") public Map<String,String> csrf(CsrfToken token){return Map.of("token",token.getToken(),"headerName",token.getHeaderName());}
- @PostMapping("/auth/signup") @ResponseStatus(HttpStatus.CREATED)
+ @PostMapping("/auth/signup") @ResponseStatus(HttpStatus.CREATED) @Transactional
  public UserView signup(@Valid @RequestBody Signup input,HttpServletRequest req,HttpServletResponse res){
-   validateTimezone(input.timezone());
+   validateTimezone(input.timezone());security.ready();com.meetgrid.service.AccountSecurity.validatePassword(input.password());
    if(input.password().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Password must be at most 72 UTF-8 bytes.");
    String email=input.email().strip().toLowerCase(Locale.ROOT);
    if(email.equals(bootstrap.email()))throw new ResponseStatusException(HttpStatus.CONFLICT,"This identifier is reserved. Sign in with the administrator credentials.");
    if(accounts.findByEmail(email).isPresent())throw new ResponseStatusException(HttpStatus.CONFLICT,"An account with this email already exists. Sign in instead.");
    var a=new Account();a.id=UUID.randomUUID().toString();a.email=email;a.passwordHash=encoder.encode(input.password());a.displayName=input.name().strip();a.workspaceName=input.workspaceName().strip();a.timezone=input.timezone();
    try{accounts.saveAndFlush(a);}catch(org.springframework.dao.DataIntegrityViolationException e){throw new ResponseStatusException(HttpStatus.CONFLICT,"An account with this email already exists.");}
-   authenticate(a,req,res);return UserView.from(a);
+   security.issue(a,"VERIFY");sessions.authenticate(a,req,res);return UserView.from(a);
  }
  @PostMapping("/auth/login") public UserView login(@Valid @RequestBody Login input,HttpServletRequest req,HttpServletResponse res){
+   limits.check("login-email",input.email().strip().toLowerCase(Locale.ROOT),15,900);
    var a=accounts.findByEmail(input.email().strip().toLowerCase(Locale.ROOT)).orElse(null);
-   if(a==null || a.suspended || !encoder.matches(input.password(),a.passwordHash))throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect, or the account is unavailable.");
+   if(a==null || a.suspended || !a.hasPassword || !encoder.matches(input.password(),a.passwordHash))throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect, or the account is unavailable.");
    authenticate(a,req,res);return UserView.from(a);
- }
- private void authenticate(Account a,HttpServletRequest req,HttpServletResponse res){
-   if(req.getSession(false)!=null)req.getSession(false).invalidate();
-   var context=SecurityContextHolder.createEmptyContext();context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(a.id,null,AuthorityUtils.createAuthorityList("ROLE_USER","ROLE_"+a.role)));
-   SecurityContextHolder.setContext(context);contexts.saveContext(context,req,res);
  }
  @GetMapping("/auth/me") public UserView me(){return UserView.from(current());}
  @PutMapping("/workspace") @Transactional public UserView profile(@Valid @RequestBody Profile input){validateTimezone(input.timezone());var a=current();a.displayName=input.name().strip();a.workspaceName=input.workspaceName().strip();a.timezone=input.timezone();return UserView.from(accounts.save(a));}

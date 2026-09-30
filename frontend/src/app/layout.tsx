@@ -8,6 +8,7 @@ import "./pastel.css";
 import "./product.css";
 import "./public-pages.css";
 import "./admin-tools.css";
+import "./account-flow.css";
 import { SessionProvider } from '@/components/product/session';
 import { SiteProvider } from '@/components/product/site-provider';
 export const metadata: Metadata = {

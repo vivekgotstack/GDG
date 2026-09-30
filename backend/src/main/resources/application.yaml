@@ -1,0 +1,76 @@
+server:
+  port: ${PORT:8080}
+  address: ${BIND_ADDRESS:127.0.0.1}
+  shutdown: graceful
+  max-http-request-header-size: 16KB
+  tomcat:
+    threads:
+      max: ${HTTP_THREADS:60}
+      min-spare: 5
+    max-http-form-post-size: 1MB
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:8h}
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+spring:
+  application:
+    name: meetgrid
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5432/meetgrid}
+    username: ${DB_USERNAME:meetgrid}
+    password: ${DB_PASSWORD:REPLACE_DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:8}
+      minimum-idle: 1
+      connection-timeout: 10000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:REPLACE_REDIS_PASSWORD}
+      timeout: 2s
+      connect-timeout: 2s
+  session:
+    redis:
+      namespace: meetgrid:sessions
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    problemdetails:
+      enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+meetgrid:
+  demo-reset-enabled: false
+  app-url: ${APP_URL:http://127.0.0.1:3000}
+  proxy-secret: ${PROXY_SHARED_SECRET:REPLACE_SHARED_PROXY_SECRET}
+  mail:
+    api-key: ${BREVO_API_KEY:REPLACE_BREVO_API_KEY}
+    sender-email: ${BREVO_SENDER_EMAIL:hello@stackorcs.com}
+    sender-name: ${BREVO_SENDER_NAME:MeetGrid by StackOrcs}
+    reply-to: ${BREVO_REPLY_TO:vivekgotstack@gmail.com}
+    encryption-key: ${MAIL_ENCRYPTION_KEY:REPLACE_BASE64_32_BYTE_KEY}
+  clerk:
+    secret-key: ${CLERK_SECRET_KEY:REPLACE_CLERK_SECRET_KEY}
+    issuer: ${CLERK_ISSUER:https://REPLACE_CLERK_INSTANCE.clerk.accounts.dev}
+  limits:
+    api-per-minute: ${RATE_LIMIT_API_PER_MINUTE:240}
+    auth-per-quarter-hour: ${RATE_LIMIT_AUTH_PER_15_MINUTES:30}
+    emails-per-hour: ${RATE_LIMIT_EMAILS_PER_HOUR:5}

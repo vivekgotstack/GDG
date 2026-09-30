@@ -6,6 +6,6 @@ export const product = {
   companyName: process.env.NEXT_PUBLIC_COMPANY_NAME || 'StackOrcs',
   companyUrl: process.env.NEXT_PUBLIC_COMPANY_URL || 'https://stackorcs.com',
 };
-export type Account = {id:string;email:string;name:string;workspaceName:string;timezone:string;plan:string;role:'USER'|'ADMIN'};
+export type Account = {id:string;email:string;name:string;workspaceName:string;timezone:string;plan:string;role:'USER'|'ADMIN';emailVerified:boolean;hasPassword:boolean;socialLinked:boolean};
 export type Plan = {id:string;name:string;description:string;monthlyPrice:number;currency:string;members:number;rooms:number;bookings:number;presets:number;checkoutEnabled:boolean;version:number};
 export type Preset = {id:string;name:string;description:string;durationMinutes:number;capacity:number};

@@ -1,4 +1,0 @@
-# Explicit local-only profile: keeps availability and bookings between restarts.
-spring:
-  datasource:
-    url: jdbc:h2:file:./data/meetgrid;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=FALSE
