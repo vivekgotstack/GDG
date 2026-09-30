@@ -25,7 +25,7 @@ export default function MeetGrid({view='planner',initialDuration=60,initialCapac
   const [submitted,setSubmitted] = useState({duration:60,capacity:1,ids:""});
   const [day,setDay] = useState<Day>("MONDAY");
   const [selected,setSelected] = useState("");
-  const [tab,setTab] = useState<"planner"|"rooms">(view);
+  const tab = view;
   const [loading,setLoading] = useState(true);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState("");
@@ -56,7 +56,6 @@ export default function MeetGrid({view='planner',initialDuration=60,initialCapac
     setLoading(true);setError("");
     try {await syncWorkspace(undefined,initialCapacity,initialDuration);setDuration(initialDuration);} catch(e) {setError(e instanceof Error ? e.message : "Could not load workspace.");} finally {setLoading(false);}
   },[syncWorkspace,initialCapacity,initialDuration]);
-  useEffect(()=>setTab(view),[view]);
   useEffect(()=>{void initialLoad();},[initialLoad]);
   useEffect(()=>{if(!toast)return;const timeout=setTimeout(()=>setToast(""),6000);return()=>clearTimeout(timeout);},[toast]);
   async function refresh(message:string, ids=participantIds) {
@@ -96,7 +95,7 @@ export default function MeetGrid({view='planner',initialDuration=60,initialCapac
     <a className="skip-link" href="#meeting-workspace">Skip to workspace</a>
     <header className="topbar"><div className="topbar-inner">
       <a href="/" className="brand" aria-label="MeetGrid home"><span className="brand-mark"><i/><i/><i/><i/></span>meetgrid<span className="brand-period">.</span></a>
-      <nav className="main-nav" aria-label="Workspace"><button className={tab==="planner"?"active":""} onClick={()=>setTab("planner")}><CalendarDays size={16}/>Meeting planner</button><button className={tab==="rooms"?"active":""} onClick={()=>setTab("rooms")}><DoorOpen size={16}/>Room directory</button></nav>
+      <nav className="main-nav" aria-label="Workspace"><Link className={tab==="planner"?"active":""} href="/app/planner"><CalendarDays size={16}/>Meeting planner</Link><Link className={tab==="rooms"?"active":""} href="/app/rooms"><DoorOpen size={16}/>Room directory</Link></nav>
       <div className="topbar-actions"><span className="demo-badge"><i/>Your workspace</span><button className="icon-button" aria-label="How MeetGrid works" onClick={()=>setInfo(true)}><HelpCircle size={20}/></button></div>
     </div></header>
     <main id="meeting-workspace" className="main-container">

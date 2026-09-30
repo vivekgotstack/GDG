@@ -16,6 +16,7 @@ public class PlanService {
  public Plan preview(){return new Plan("free","Preview","Explore the workflow before choosing a plan.",0,"USD",5,2,10,3,false,0);}
  public Plan current(){String tier=accounts.findById(WorkspaceIdentity.id()).map(a->a.plan).orElse("free");return all().stream().filter(p->p.id().equals(tier)).findFirst().orElse(preview());}
  public void requireCapacity(String resource){requireCapacity(resource,1);}
+ public void lockWorkspace(){if(!WorkspaceIdentity.id().equals("legacy"))accounts.lockById(WorkspaceIdentity.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED));}
  public void requireCapacity(String resource,int adding){
    String id=WorkspaceIdentity.id();if(id.equals("legacy"))return;
    var a=accounts.lockById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED));if(a.role.equals("ADMIN"))return;

@@ -41,6 +41,12 @@ class SecurityFlowTest {
    var booking=mvc.perform(post("/api/bookings").session(session).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isCreated()).andReturn();
    String bookingId=json.readTree(booking.getResponse().getContentAsString()).path("id").asText();
    mvc.perform(post("/api/bookings").session(session).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isConflict());
+   String later=reservation.replace("10:00","12:00").replace("11:00","13:00");
+   mvc.perform(post("/api/bookings").session(session).with(csrf()).contentType("application/json").content(later)).andExpect(status().isCreated());
+   mvc.perform(put("/api/bookings/"+bookingId).session(session).with(csrf()).contentType("application/json").content(later)).andExpect(status().isConflict());
+   mvc.perform(get("/api/bookings").session(session)).andExpect(jsonPath("$[0].startTime").value("10:00:00"));
+   String edited=reservation.replace("10:00","14:00").replace("11:00","15:00").replace("}",",\"title\":\"Weekly design review\",\"notes\":\"Discuss the roadmap\"}");
+   mvc.perform(put("/api/bookings/"+bookingId).session(session).with(csrf()).contentType("application/json").content(edited)).andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Weekly design review")).andExpect(jsonPath("$.startTime").value("14:00:00"));
    mvc.perform(post("/api/templates").session(session).with(csrf()).contentType("application/json").content("{\"name\":\"Weekly review\",\"description\":\"Our creative review\",\"durationMinutes\":45,\"capacity\":4}"))
        .andExpect(status().isCreated());
    mvc.perform(put("/api/workspace").session(session).with(csrf()).contentType("application/json").content("{\"name\":\"Owner renamed\",\"workspaceName\":\"Our studio\",\"timezone\":\"UTC\"}"))
@@ -54,6 +60,7 @@ class SecurityFlowTest {
    mvc.perform(get("/api/templates").session(other)).andExpect(jsonPath("$.length()").value(0));
    mvc.perform(delete("/api/members/"+memberId).session(other).with(csrf())).andExpect(status().isNotFound());
    mvc.perform(delete("/api/bookings/"+bookingId).session(other).with(csrf())).andExpect(status().isNotFound());
+   mvc.perform(put("/api/bookings/"+bookingId).session(other).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isNotFound());
    mvc.perform(post("/api/bookings").session(other).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isNotFound());
    mvc.perform(post("/api/billing/webhook").contentType("application/json").content("{}")).andExpect(status().isBadRequest());
    String event="{\"type\":\"customer.subscription.created\",\"created\":100,\"data\":{\"object\":{\"id\":\"sub_test\",\"customer\":\"cus_test\",\"status\":\"active\",\"metadata\":{\"account_id\":\""+owner+"\"},\"items\":{\"data\":[{\"price\":{\"id\":\"price_studio_test\"}}]}}}}";

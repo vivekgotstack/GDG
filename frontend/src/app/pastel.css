@@ -24,6 +24,7 @@ h1, h2, h3, h4 { font-weight: 600; }
 .brand-mark i { background: var(--purple); }
 .brand-mark i:nth-child(2) { background: var(--pink); }
 .brand-mark i:nth-child(3) { background: var(--yellow); }
+.brand-mark i:last-child { background: #B8D5F5; }
 .brand-period { color: #8c7abe; }
 .main-nav button { color: #746c80; }
 .main-nav button.active { color: var(--action); border-bottom-color: var(--action); }

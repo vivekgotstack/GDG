@@ -26,6 +26,7 @@ export const api = {
   saveRoom: (input: RoomInput, id?: string) => request<Room>(id ? `/rooms/${encodeURIComponent(id)}` : "/rooms", { method: id ? "PUT" : "POST", body: JSON.stringify(input) }),
   deleteRoom: (id: string) => request<void>(`/rooms/${encodeURIComponent(id)}`, { method: "DELETE" }),
   cancelBooking: (id: string) => request<void>(`/bookings/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  updateBooking: (id: string,input:BookingInput) => request<Booking>(`/bookings/${encodeURIComponent(id)}`, { method: "PUT",body:JSON.stringify(input) }),
   members: () => request<Member[]>("/members"),
   rooms: () => request<Room[]>("/rooms"),
   bookings: () => request<Booking[]>("/bookings"),

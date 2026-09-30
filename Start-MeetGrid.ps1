@@ -18,6 +18,7 @@ function Test-Endpoint([string]$Url) {
 if (-not (Test-Endpoint 'http://127.0.0.1:8080/api/health')) {
     # A generated local owner password stays in the ignored runtime directory.
     $previousAdminPassword = $env:ADMIN_BOOTSTRAP_PASSWORD
+    $previousAdminEmail = $env:ADMIN_EMAIL
     if (-not $env:ADMIN_BOOTSTRAP_PASSWORD) {
         $credentialPath = Join-Path $runtimePath 'admin-credentials.json'
         if (-not (Test-Path -LiteralPath $credentialPath)) {
@@ -31,6 +32,7 @@ if (-not (Test-Endpoint 'http://127.0.0.1:8080/api/health')) {
         $localAdmin = Get-Content -LiteralPath $credentialPath -Raw | ConvertFrom-Json
         if ($env:ADMIN_EMAIL -and $env:ADMIN_EMAIL -ne $localAdmin.email) { throw 'ADMIN_EMAIL differs from the saved local credentials. Set ADMIN_BOOTSTRAP_PASSWORD explicitly.' }
         $env:ADMIN_BOOTSTRAP_PASSWORD = $localAdmin.password
+        $env:ADMIN_EMAIL = $localAdmin.email
         Write-Host 'Local administrator credentials: .runtime/admin-credentials.json (never committed).'
     }
     Write-Host 'Starting the local backend. Logs: .runtime/backend.log'
@@ -39,7 +41,7 @@ if (-not (Test-Endpoint 'http://127.0.0.1:8080/api/health')) {
         -WorkingDirectory (Join-Path $projectRoot 'backend') -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $runtimePath 'backend.log') `
         -RedirectStandardError (Join-Path $runtimePath 'backend-errors.log') | Out-Null
-    } finally { $env:ADMIN_BOOTSTRAP_PASSWORD = $previousAdminPassword }
+    } finally { $env:ADMIN_BOOTSTRAP_PASSWORD = $previousAdminPassword; $env:ADMIN_EMAIL = $previousAdminEmail }
     $deadline = (Get-Date).AddSeconds(90)
     while (-not (Test-Endpoint 'http://127.0.0.1:8080/api/health')) {
         if ((Get-Date) -gt $deadline) { throw 'Backend did not start. Read .runtime/backend.log and .runtime/backend-errors.log.' }

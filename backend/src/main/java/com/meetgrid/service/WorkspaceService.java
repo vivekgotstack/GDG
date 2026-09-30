@@ -38,6 +38,7 @@ public class WorkspaceService {
         members.delete(members.findByIdAndOwnerId(id, id()).orElseThrow(() -> missing("Member")));
     }
     public RoomView saveRoom(String id, RoomInput input) {
+        plans.lockWorkspace();
         AvailabilityService.validateRange(input.openTime(), input.closeTime());
         Room room;
         if (id == null) {
@@ -55,12 +56,14 @@ public class WorkspaceService {
         return RoomView.from(rooms.save(room));
     }
     public void deleteRoom(String id) {
+        plans.lockWorkspace();
         var room = rooms.findLockedById(id).filter(r -> r.ownerId.equals(id())).orElseThrow(() -> missing("Room"));
         bookings.deleteAll(bookings.findByRoomId(id));
         bookings.flush();
         rooms.delete(room);
     }
     public void cancelBooking(String id) {
+        plans.lockWorkspace();
         var booking = bookings.findById(id).filter(b -> b.room.ownerId.equals(id())).orElseThrow(() -> missing("Booking"));
         rooms.findLockedById(booking.room.id).orElseThrow(() -> missing("Room"));
         bookings.delete(booking);

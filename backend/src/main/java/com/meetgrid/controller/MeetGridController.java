@@ -32,4 +32,6 @@ public class MeetGridController {
     public List<BookingView> bookings() { return bookings.list(); }
     @PostMapping("/bookings") @ResponseStatus(HttpStatus.CREATED)
     public BookingView add(@Valid @RequestBody BookingInput request) { return bookings.add(request); }
+    @PutMapping("/bookings/{id}")
+    public BookingView updateBooking(@PathVariable String id,@Valid @RequestBody BookingInput request) { return bookings.update(id,request); }
 }

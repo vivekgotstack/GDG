@@ -1,0 +1,2 @@
+ALTER TABLE room_bookings ADD COLUMN title VARCHAR(120) NOT NULL DEFAULT 'Team meeting';
+ALTER TABLE room_bookings ADD COLUMN notes VARCHAR(2000) NOT NULL DEFAULT '';

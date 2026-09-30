@@ -14,4 +14,4 @@ export function SiteProvider({children}:{children:React.ReactNode}){
  return <SiteContext.Provider value={{snapshot,brand,text,update}}>{children}</SiteContext.Provider>;
 }
 export const useSite=()=>useContext(SiteContext);
-export function SiteText({name,children}:{name:string;children?:React.ReactNode}){const {text}=useSite();return <>{text(name,typeof children==='string'?children:'')||children}</>;}
+export function SiteText({name,children}:{name:string;children?:React.ReactNode}){const {text}=useSite();return <>{text(name,typeof children==='string'?children:'')}</>;}

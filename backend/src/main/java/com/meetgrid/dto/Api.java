@@ -24,9 +24,9 @@ public final class Api {
     public record RoomView(String id, String name, int capacity, LocalTime openTime, LocalTime closeTime, String location) {
         public static RoomView from(Room r) { return new RoomView(r.id, r.name, r.capacity, r.openTime, r.closeTime, r.location); }
     }
-    public record BookingInput(@NotBlank String roomId, @NotNull Weekday dayOfWeek, @NotNull LocalTime startTime, @NotNull LocalTime endTime) {}
-    public record BookingView(String id, String roomId, String roomName, Weekday dayOfWeek, LocalTime startTime, LocalTime endTime, String source) {
-        public static BookingView from(RoomBooking b) { return new BookingView(b.id, b.room.id, b.room.name, b.dayOfWeek, b.startTime, b.endTime, b.source); }
+    public record BookingInput(@NotBlank String roomId, @NotNull Weekday dayOfWeek, @NotNull LocalTime startTime, @NotNull LocalTime endTime, @Size(max=120) String title, @Size(max=2000) String notes) {}
+    public record BookingView(String id, String roomId, String roomName, Weekday dayOfWeek, LocalTime startTime, LocalTime endTime, String source, String title, String notes) {
+        public static BookingView from(RoomBooking b) { return new BookingView(b.id, b.room.id, b.room.name, b.dayOfWeek, b.startTime, b.endTime, b.source, b.title, b.notes); }
     }
     public record SearchRequest(@NotEmpty @Size(max = 50) List<@NotBlank String> memberIds,
         @Min(15) @Max(480) int durationMinutes, @Min(1) @Max(1000) int requiredCapacity) {}
