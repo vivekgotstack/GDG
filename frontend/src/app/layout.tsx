@@ -11,10 +11,13 @@ import "./admin-tools.css";
 import "./account-flow.css";
 import { SessionProvider } from '@/components/product/session';
 import { SiteProvider } from '@/components/product/site-provider';
+import { PwaRegistration } from '@/components/product/install-app';
 export const metadata: Metadata = {
+  appleWebApp:{capable:true,statusBarStyle:'default',title:'MeetGrid'},
+  icons:{apple:'/icons/apple-touch-icon.png'},
   title: `${process.env.NEXT_PUBLIC_APP_NAME || 'MeetGrid'} — Find your common ground`,
   description: process.env.NEXT_PUBLIC_APP_TAGLINE || 'One thoughtful workspace for team availability, rooms, and recurring meetings.',
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><SiteProvider><SessionProvider>{children}</SessionProvider></SiteProvider></body></html>;
+  return <html lang="en"><body><PwaRegistration/><SiteProvider><SessionProvider>{children}</SessionProvider></SiteProvider></body></html>;
 }

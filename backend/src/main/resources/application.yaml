@@ -57,6 +57,9 @@ management:
       show-details: never
       probes:
         enabled: true
+      group:
+        readiness:
+          include: readinessState,db,redis
 meetgrid:
   admin:
     email: ${ADMIN_EMAIL:vivekni1224@nigam}

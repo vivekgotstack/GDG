@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Check, Clock3, DoorOpen, HelpCircle, LoaderCircle, Plus, Search, SlidersHorizontal, Users, X, CalendarDays, CircleAlert, Pencil, Trash2 } from "lucide-react";
+import { Pagination,usePagination } from "./pagination";
+import { Input } from "./ui/input";
 import { api } from "@/lib/api";
 import { dayName, range, type Availability, type Booking, type BookingInput, type Day, type Member, type MeetingOption, type Room, type SearchResult } from "@/lib/types";
 import { AvailabilityEditor } from "./availability-editor";
@@ -90,6 +92,8 @@ export default function MeetGrid({view='planner',initialDuration=60,initialCapac
   function loadSamples() {
     setConfirmation({title:"Replace workspace with sample data?",description:"All current members, availability, rooms, and bookings will be replaced with sample entries. This cannot be undone.",label:"Replace with samples",action:async()=>{await api.reset();await initialLoad();setToast("Sample workspace loaded. Every member and room is editable.");}});
   }
+  const [peopleQuery,setPeopleQuery]=useState("");
+  const people=usePagination(members.filter(m=>m.name.toLowerCase().includes(peopleQuery.toLowerCase())),8,peopleQuery);
   const active=result?.options.find(o=>o.id===selected);
   return <div className="app-shell planner-embedded">
     <a className="skip-link" href="#meeting-workspace">Skip to workspace</a>
@@ -112,11 +116,11 @@ export default function MeetGrid({view='planner',initialDuration=60,initialCapac
             <div className="capacity-control"><input id="capacity" type="number" min={Math.max(group.length,1)} max={1000} value={capacity} disabled={busy} onChange={e=>setCapacity(Math.min(1000,Math.max(group.length,1,Number(e.target.value)||1)))}/><span>people</span></div><p className="input-hint">{group.length} selected, plus any extra guests.</p>
             <div className="team-heading"><span className="field-label">Your team</span><Button variant="outline" size="sm" onClick={()=>setMemberEditor("new")} disabled={busy}><Plus size={14}/>Add member</Button></div>
             {!members.length && <p className="empty-team">Add your first member, then set their weekly availability.</p>}
-            <div className="team-list">{members.map(member=><div className="team-entry" key={member.id}>
+            <Input aria-label="Search team members" placeholder="Find a person…" value={peopleQuery} onChange={e=>setPeopleQuery(e.target.value)}/><div className="team-list">{people.items.map(member=><div className="team-entry" key={member.id}>
               <div className="team-entry-top"><input type="checkbox" aria-label={`Include ${member.name} in meeting`} checked={participantIds.includes(member.id)} disabled={busy || (!participantIds.includes(member.id)&&participantIds.length>=50)} onChange={()=>toggleParticipant(member.id)}/><span className={`avatar ${member.color}`}>{member.name.slice(0,1).toUpperCase()}</span><strong title={member.name}>{member.name}</strong><button className="icon-button small" aria-label={`Edit ${member.name}`} onClick={()=>setMemberEditor(member)} disabled={busy}><Pencil size={14}/></button><button className="icon-button small danger" aria-label={`Remove ${member.name}`} onClick={()=>removeMember(member)} disabled={busy}><Trash2 size={14}/></button></div>
               <button className="availability-link" aria-label={`Edit ${member.name} availability`} onClick={()=>setEditing(member)} disabled={busy}><CalendarDays size={13}/>{new Set(member.availability.map(a=>a.dayOfWeek)).size} days available · Edit availability</button>
             </div>)}</div>
-            <p className="input-hint">Select up to 50 people for this meeting.</p>
+            <Pagination {...people} label="people"/><p className="input-hint">Select up to 50 people for this meeting.</p>
             <Button className="search-button" onClick={()=>void search()} disabled={busy || !group.length || !rooms.length}>{busy?<LoaderCircle size={18} className="spin"/>:<Search size={18}/>}Find Meeting Options<ArrowRight size={17}/></Button>
             {!group.length && members.length>0 && <p className="input-hint">Select at least one team member.</p>}
             {!rooms.length && <Button variant="outline" className="full-width add-first-room" onClick={()=>setRoomEditor("new")}><Plus size={15}/>Add your first room</Button>}

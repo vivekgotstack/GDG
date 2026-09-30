@@ -7,7 +7,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.junit.jupiter.*;
-import org.testcontainers.containers.*;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.GenericContainer;
 @Testcontainers(disabledWithoutDocker=true)
 @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_CLASS)
 abstract class PostgresTestSupport {
