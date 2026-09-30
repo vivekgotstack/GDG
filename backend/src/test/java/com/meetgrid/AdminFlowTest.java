@@ -12,7 +12,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
 @SpringBootTest(properties={"ADMIN_EMAIL=vivekni1224@nigam","ADMIN_BOOTSTRAP_PASSWORD=local-integration-admin-password-only"}) @AutoConfigureMockMvc
-class AdminFlowTest {
+class AdminFlowTest extends PostgresTestSupport {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;
  @Test void rolesContentPricingAndAtomicImport() throws Exception {
   mvc.perform(get("/api/plans")).andExpect(jsonPath("$[*].monthlyPrice",containsInAnyOrder(7,12,20)));
@@ -24,6 +24,7 @@ class AdminFlowTest {
    {"email":"rbac-user@example.test","password":"regular-account-password","name":"User","workspaceName":"User workspace","timezone":"UTC","role":"ADMIN"}
    """)).andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER")).andReturn();
   var user=(MockHttpSession)signup.getRequest().getSession(false);String userId=json.readTree(signup.getResponse().getContentAsString()).path("id").asText();
+  verifyFixture("rbac-user@example.test");
   mvc.perform(get("/api/admin/users").session(user)).andExpect(status().isForbidden());
   mvc.perform(put("/api/admin/site").session(user).with(csrf()).contentType("application/json").content("{\"version\":0,\"values\":{}}")).andExpect(status().isForbidden());
   mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"One\",\"Two\",\"Three\",\"Four\",\"Five\",\"Six\"]}")).andExpect(status().isConflict());

@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class ApiIntegrationTest {
+class ApiIntegrationTest extends PostgresTestSupport {
     @Autowired MockMvc mvc;
     @Autowired SeedService seed;
     @Autowired com.fasterxml.jackson.databind.ObjectMapper json;

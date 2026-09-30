@@ -26,7 +26,7 @@ public class BillingController {
    if(!plan.checkoutEnabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Paid checkout is not configured yet. Your preview workspace remains available.");
    // Never charge a Stripe amount that differs from the price displayed on the site.
    try {
-     var price=RestClient.create("https://api.stripe.com/v1").get().uri("/prices/"+plans.priceId(plan.id())).header("Authorization","Bearer "+env.getProperty("STRIPE_SECRET_KEY","")).retrieve().body(JsonNode.class);
+     var price=RestClient.create("https://api.stripe.com/v1").get().uri("/prices/"+plans.priceId(plan.id())).header("Authorization","Bearer "+env.getProperty("meetgrid.billing.secret-key","")).retrieve().body(JsonNode.class);
      if(price==null||!price.path("active").asBoolean()||price.path("unit_amount").asInt(-1)!=plan.monthlyPrice()*100||!price.path("currency").asText().equalsIgnoreCase(plan.currency())||!price.path("recurring").path("interval").asText().equals("month")||price.path("recurring").path("interval_count").asInt()!=1)
        throw new ResponseStatusException(HttpStatus.CONFLICT,"Checkout price needs to be aligned with the displayed monthly plan. Contact support.");
    }catch(ResponseStatusException e){throw e;}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Could not verify the current checkout price. Please try again.");}
@@ -35,19 +35,19 @@ public class BillingController {
    var form=new LinkedMultiValueMap<String,String>();form.add("mode","subscription");form.add("line_items[0][price]",plans.priceId(plan.id()));form.add("line_items[0][quantity]","1");
    form.add("client_reference_id",account.id);form.add("subscription_data[metadata][account_id]",account.id);
    if(account.stripeCustomer!=null)form.add("customer",account.stripeCustomer);else form.add("customer_email",account.email);
-   String origin=env.getProperty("APP_URL","http://localhost:3000");form.add("success_url",origin+"/app/billing?checkout=success");form.add("cancel_url",origin+"/pricing");
+   String origin=env.getProperty("meetgrid.app-url","http://localhost:3000");form.add("success_url",origin+"/app/billing?checkout=success");form.add("cancel_url",origin+"/pricing");
    return Map.of("url",stripe("checkout/sessions",form).path("url").asText());
  }
  @PostMapping("/billing/portal") public Map<String,String> portal(){
    var a=accounts.findById(WorkspaceIdentity.id()).orElseThrow();if(a.stripeCustomer==null)throw new ResponseStatusException(HttpStatus.CONFLICT,"No billing account yet.");
-   var form=new LinkedMultiValueMap<String,String>();form.add("customer",a.stripeCustomer);form.add("return_url",env.getProperty("APP_URL","http://localhost:3000")+"/app/billing");return Map.of("url",stripe("billing_portal/sessions",form).path("url").asText());
+   var form=new LinkedMultiValueMap<String,String>();form.add("customer",a.stripeCustomer);form.add("return_url",env.getProperty("meetgrid.app-url","http://localhost:3000")+"/app/billing");return Map.of("url",stripe("billing_portal/sessions",form).path("url").asText());
  }
  private JsonNode stripe(String path,LinkedMultiValueMap<String,String> form){
-   String key=env.getProperty("STRIPE_SECRET_KEY","");if(key.isBlank())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Billing is not configured.");
+   String key=env.getProperty("meetgrid.billing.secret-key","");if(key.isBlank()||key.startsWith("REPLACE_"))throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Billing is not configured.");
    try{return RestClient.create("https://api.stripe.com/v1").post().uri("/"+path).header("Authorization","Bearer "+key).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().body(JsonNode.class);}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Payment provider is unavailable or billing configuration needs attention.");}
  }
  @PostMapping("/billing/webhook") @Transactional public Map<String,Boolean> webhook(@RequestBody String body,@RequestHeader(value="Stripe-Signature",defaultValue="") String signature){
-   String secret=env.getProperty("STRIPE_WEBHOOK_SECRET","");if(secret.isBlank())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+   String secret=env.getProperty("meetgrid.billing.webhook-secret","");if(secret.isBlank()||secret.startsWith("REPLACE_"))throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
    JsonNode event;
    try {
      var parts=Arrays.stream(signature.split(",")).map(s->s.split("=",2)).filter(p->p.length==2).toList();

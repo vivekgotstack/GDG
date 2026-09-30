@@ -21,7 +21,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
   if(req.getContentLengthLong()>1048576){res.sendError(413);return;}
   boolean auth=req.getRequestURI().startsWith("/api/auth/")&&!req.getMethod().equals("GET");
   String identity=client(req);var user=SecurityContextHolder.getContext().getAuthentication();
-  if(!auth&&user!=null&&user.isAuthenticated())identity="account:"+user.getName();
+  if(!auth&&user!=null&&user.isAuthenticated()&&!(user instanceof org.springframework.security.authentication.AnonymousAuthenticationToken))identity="account:"+user.getName();
   int seconds=auth?900:60;
   try{limits.check(auth?"auth":"api",identity,env.getProperty(auth?"meetgrid.limits.auth-per-quarter-hour":"meetgrid.limits.api-per-minute",Integer.class,auth?30:240),seconds);}
   catch(ResponseStatusException e){res.setStatus(e.getStatusCode().value());res.setContentType("application/json");res.setHeader("Retry-After",String.valueOf(seconds));res.getWriter().write("{\"detail\":\""+e.getReason()+"\"}");return;}

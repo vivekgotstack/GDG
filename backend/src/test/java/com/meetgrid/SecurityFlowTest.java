@@ -12,7 +12,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 @SpringBootTest(properties={"STRIPE_WEBHOOK_SECRET=integration-test-secret","STRIPE_PRICE_STUDIO=price_studio_test"})
 @AutoConfigureMockMvc
-class SecurityFlowTest {
+class SecurityFlowTest extends PostgresTestSupport {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;
  @Test void completePrivateWorkspaceAndBillingFlow() throws Exception {
    mvc.perform(get("/api/members")).andExpect(status().isUnauthorized());
@@ -23,6 +23,7 @@ class SecurityFlowTest {
        """)).andExpect(status().isCreated()).andReturn();
    var session=(MockHttpSession)first.getRequest().getSession(false);
    String owner=json.readTree(first.getResponse().getContentAsString()).path("id").asText();
+   verifyFixture("owner@example.test");
    mvc.perform(get("/api/members").session(session)).andExpect(jsonPath("$.length()").value(0));
    var member=mvc.perform(post("/api/members").session(session).with(csrf()).contentType("application/json").content("{\"name\":\"My collaborator\",\"color\":\"pink\"}"))
        .andExpect(status().isCreated()).andReturn();
@@ -55,6 +56,7 @@ class SecurityFlowTest {
        {"email":"other@example.test","password":"another-long-password","name":"Other","workspaceName":"Other studio","timezone":"UTC"}
        """)).andExpect(status().isCreated()).andReturn();
    var other=(MockHttpSession)second.getRequest().getSession(false);
+   verifyFixture("other@example.test");
    mvc.perform(get("/api/members").session(other)).andExpect(jsonPath("$.length()").value(0));
    mvc.perform(get("/api/bookings").session(other)).andExpect(jsonPath("$.length()").value(0));
    mvc.perform(get("/api/templates").session(other)).andExpect(jsonPath("$.length()").value(0));

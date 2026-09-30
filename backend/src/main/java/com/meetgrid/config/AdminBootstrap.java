@@ -11,9 +11,9 @@ import java.util.*;
 public class AdminBootstrap implements ApplicationRunner {
  private final Environment env;private final AccountRepository accounts;private final PasswordEncoder passwords;
  public AdminBootstrap(Environment e,AccountRepository a,PasswordEncoder p){env=e;accounts=a;passwords=p;}
- public String email(){return env.getProperty("ADMIN_EMAIL","vivekni1224@nigam").strip().toLowerCase(Locale.ROOT);}
+ public String email(){return env.getProperty("meetgrid.admin.email","vivekni1224@nigam").strip().toLowerCase(Locale.ROOT);}
  @Override public void run(ApplicationArguments args){
-  String password=env.getProperty("ADMIN_BOOTSTRAP_PASSWORD","");if(password.isBlank())return;
+  String password=env.getProperty("meetgrid.admin.bootstrap-password","");if(password.isBlank()||password.startsWith("REPLACE_"))return;
   if(password.length()<16||password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72)throw new IllegalStateException("ADMIN_BOOTSTRAP_PASSWORD must contain 16–72 UTF-8 bytes.");
   var existing=accounts.findByEmail(email());
   if(existing.isPresent()){

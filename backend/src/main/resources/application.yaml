@@ -58,6 +58,15 @@ management:
       probes:
         enabled: true
 meetgrid:
+  admin:
+    email: ${ADMIN_EMAIL:vivekni1224@nigam}
+    bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:REPLACE_ADMIN_BOOTSTRAP_PASSWORD}
+  billing:
+    secret-key: ${STRIPE_SECRET_KEY:REPLACE_STRIPE_SECRET_KEY}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:REPLACE_STRIPE_WEBHOOK_SECRET}
+    price-starter: ${STRIPE_PRICE_STARTER:REPLACE_STRIPE_PRICE_STARTER}
+    price-studio: ${STRIPE_PRICE_STUDIO:REPLACE_STRIPE_PRICE_STUDIO}
+    price-scale: ${STRIPE_PRICE_SCALE:REPLACE_STRIPE_PRICE_SCALE}
   demo-reset-enabled: false
   app-url: ${APP_URL:http://127.0.0.1:3000}
   proxy-secret: ${PROXY_SHARED_SECRET:REPLACE_SHARED_PROXY_SECRET}

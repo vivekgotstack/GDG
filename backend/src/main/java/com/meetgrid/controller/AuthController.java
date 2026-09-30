@@ -42,7 +42,7 @@ public class AuthController {
    limits.check("login-email",input.email().strip().toLowerCase(Locale.ROOT),15,900);
    var a=accounts.findByEmail(input.email().strip().toLowerCase(Locale.ROOT)).orElse(null);
    if(a==null || a.suspended || !a.hasPassword || !encoder.matches(input.password(),a.passwordHash))throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect, or the account is unavailable.");
-   authenticate(a,req,res);return UserView.from(a);
+   sessions.authenticate(a,req,res);return UserView.from(a);
  }
  @GetMapping("/auth/me") public UserView me(){return UserView.from(current());}
  @PutMapping("/workspace") @Transactional public UserView profile(@Valid @RequestBody Profile input){validateTimezone(input.timezone());var a=current();a.displayName=input.name().strip();a.workspaceName=input.workspaceName().strip();a.timezone=input.timezone();return UserView.from(accounts.save(a));}
