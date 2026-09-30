@@ -18,8 +18,6 @@ public class RoomBooking {
     @Column(nullable = false, length = 20) public String source;
     @Column(nullable = false, length = 120) public String title = "Team meeting";
     @Column(nullable = false, length = 2000) public String notes = "";
-    @Column(nullable = false, length = 120) public String title = "Team meeting";
-    @Column(nullable = false, length = 2000) public String notes = "";
 
     protected RoomBooking() {}
     public RoomBooking(Room room, Weekday day, LocalTime start, LocalTime end, String source) {
