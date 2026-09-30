@@ -9,12 +9,14 @@ import org.springframework.security.web.context.*;
 public class SecurityConfiguration {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder(12);}
  @Bean SecurityContextRepository securityContextRepository(){return new HttpSessionSecurityContextRepository();}
- @Bean SecurityFilterChain security(HttpSecurity http, SecurityContextRepository repository) throws Exception {
+ @Bean SecurityFilterChain security(HttpSecurity http, SecurityContextRepository repository,com.meetgrid.repository.AccountRepository accounts) throws Exception {
    return http.authorizeHttpRequests(a->a
-       .requestMatchers("/api/auth/csrf","/api/auth/signup","/api/auth/login","/api/health","/api/plans","/api/billing/webhook").permitAll()
+       .requestMatchers("/api/auth/csrf","/api/auth/signup","/api/auth/login","/api/health","/api/plans","/api/site","/api/billing/webhook").permitAll()
+       .requestMatchers("/api/admin/**").hasRole("ADMIN")
        .requestMatchers("/api/demo/**").denyAll().anyRequest().authenticated())
      .csrf(c->c.ignoringRequestMatchers("/api/billing/webhook"))
      .securityContext(c->c.securityContextRepository(repository))
+     .addFilterBefore(new AccountAccessFilter(accounts),org.springframework.security.web.access.intercept.AuthorizationFilter.class)
      .requestCache(c->c.disable()).formLogin(c->c.disable()).httpBasic(c->c.disable())
      .exceptionHandling(c->c.authenticationEntryPoint((req,res,e)->{res.setStatus(401);res.setContentType("application/json");res.getWriter().write("{\"detail\":\"Sign in to access your workspace.\"}");})
        .accessDeniedHandler((req,res,e)->{res.setStatus(403);res.setContentType("application/json");res.getWriter().write("{\"detail\":\"Request could not be authorized. Refresh the page and try again.\"}");}))

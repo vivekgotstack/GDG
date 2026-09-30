@@ -10,11 +10,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 @RestController @RequestMapping("/api/templates")
 public class TemplateController {
- private final TemplateRepository templates;
- public TemplateController(TemplateRepository t){templates=t;}
+ private final TemplateRepository templates;private final com.meetgrid.service.PlanService plans;
+ public TemplateController(TemplateRepository t,com.meetgrid.service.PlanService p){templates=t;plans=p;}
  public record Input(@NotBlank @Size(max=100) String name,@NotNull @Size(max=500) String description,@Min(15) @Max(480) int durationMinutes,@Min(1) @Max(1000) int capacity){}
  @GetMapping public List<MeetingTemplate> list(){return templates.findByOwnerId(WorkspaceIdentity.id());}
- @PostMapping @ResponseStatus(HttpStatus.CREATED) public MeetingTemplate add(@Valid @RequestBody Input i){var t=new MeetingTemplate();t.id=UUID.randomUUID().toString();t.ownerId=WorkspaceIdentity.id();return save(t,i);}
+ @PostMapping @ResponseStatus(HttpStatus.CREATED) @org.springframework.transaction.annotation.Transactional public MeetingTemplate add(@Valid @RequestBody Input i){plans.requireCapacity("presets");var t=new MeetingTemplate();t.id=UUID.randomUUID().toString();t.ownerId=WorkspaceIdentity.id();return save(t,i);}
  @PutMapping("/{id}") public MeetingTemplate update(@PathVariable String id,@Valid @RequestBody Input i){return save(find(id),i);}
  @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable String id){templates.delete(find(id));}
  private MeetingTemplate find(String id){return templates.findByIdAndOwnerId(id,WorkspaceIdentity.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Preset not found."));}

@@ -12,4 +12,6 @@ public class Account {
  @Column(length=100) public String stripeCustomer;
  @Column(length=100) public String subscriptionId;
  @Column(nullable=false) public long billingEventTime;
+ @Column(nullable=false,length=20) public String role="USER";
+ @Column(nullable=false) public boolean suspended=false;
 }

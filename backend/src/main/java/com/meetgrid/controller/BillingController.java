@@ -23,7 +23,13 @@ public class BillingController {
  public record Checkout(String plan){}
  @PostMapping("/billing/checkout") public Map<String,String> checkout(@RequestBody Checkout input){
    var plan=plans.all().stream().filter(p->p.id().equals(input.plan())&&!p.id().equals("free")).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose a paid plan."));
-   if(!plan.checkoutEnabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Paid checkout is not configured yet. Your free workspace remains available.");
+   if(!plan.checkoutEnabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Paid checkout is not configured yet. Your preview workspace remains available.");
+   // Never charge a Stripe amount that differs from the price displayed on the site.
+   try {
+     var price=RestClient.create("https://api.stripe.com/v1").get().uri("/prices/"+plans.priceId(plan.id())).header("Authorization","Bearer "+env.getProperty("STRIPE_SECRET_KEY","")).retrieve().body(JsonNode.class);
+     if(price==null||!price.path("active").asBoolean()||price.path("unit_amount").asInt(-1)!=plan.monthlyPrice()*100||!price.path("currency").asText().equalsIgnoreCase(plan.currency())||!price.path("recurring").path("interval").asText().equals("month")||price.path("recurring").path("interval_count").asInt()!=1)
+       throw new ResponseStatusException(HttpStatus.CONFLICT,"Checkout price needs to be aligned with the displayed monthly plan. Contact support.");
+   }catch(ResponseStatusException e){throw e;}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Could not verify the current checkout price. Please try again.");}
    var account=accounts.findById(WorkspaceIdentity.id()).orElseThrow();
    if(account.subscriptionId!=null)throw new ResponseStatusException(HttpStatus.CONFLICT,"Manage your existing subscription through billing settings.");
    var form=new LinkedMultiValueMap<String,String>();form.add("mode","subscription");form.add("line_items[0][price]",plans.priceId(plan.id()));form.add("line_items[0][quantity]","1");
