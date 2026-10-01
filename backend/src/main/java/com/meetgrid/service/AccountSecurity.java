@@ -20,15 +20,20 @@ public class AccountSecurity {
  @Transactional public void issue(Account account,String purpose){
   mail.requireConfigured();var a=accounts.lockById(account.id).orElseThrow();
   limits.check("email",a.email,env.getProperty("meetgrid.limits.emails-per-hour",Integer.class,5),3600);
-  db.update("UPDATE auth_tokens SET consumed=TRUE WHERE account_id=? AND purpose=?",a.id,purpose);
+  // Verification emails may arrive out of order. Keep unexpired links usable;
+  // password resets still supersede every earlier reset link.
+  if(!purpose.equals("VERIFY"))db.update("UPDATE auth_tokens SET consumed=TRUE WHERE account_id=? AND purpose=?",a.id,purpose);
   byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);String token=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);Instant expiry=Instant.now().plusSeconds(purpose.equals("RESET")?1200:86400);
   db.update("INSERT INTO auth_tokens(token_hash,account_id,purpose,expires_at,consumed) VALUES(?,?,?,?,FALSE)",RateLimits.hash(token),a.id,purpose,Timestamp.from(expiry));
   mail.queue(a.email,a.displayName,purpose,token,expiry);
  }
  @Transactional public void forgot(String email){ready();limits.check("recovery",email,5,3600);accounts.findByEmail(email).filter(a->!a.suspended).ifPresent(a->issue(a,"RESET"));}
  @Transactional public void consume(String token,String purpose,String password){
-  var matches=db.queryForList("SELECT account_id FROM auth_tokens WHERE token_hash=?",RateLimits.hash(token));if(matches.isEmpty())throw invalid();
+  var matches=db.queryForList("SELECT account_id FROM auth_tokens WHERE token_hash=? AND purpose=? AND expires_at>CURRENT_TIMESTAMP",RateLimits.hash(token),purpose);if(matches.isEmpty())throw invalid();
   var account=accounts.lockById((String)matches.getFirst().get("account_id")).orElseThrow(this::invalid);if(account.suspended)throw invalid();
+  // A second click on a valid verification link is success for an already
+  // verified account. This never permits replay of a password reset.
+  if(purpose.equals("VERIFY")&&account.emailVerified)return;
   int used=db.update("UPDATE auth_tokens SET consumed=TRUE WHERE token_hash=? AND account_id=? AND purpose=? AND consumed=FALSE AND expires_at>CURRENT_TIMESTAMP",RateLimits.hash(token),account.id,purpose);if(used!=1)throw invalid();
   if(purpose.equals("RESET")){validatePassword(password);account.passwordHash=encoder.encode(password);account.hasPassword=true;account.authVersion++;db.update("UPDATE auth_tokens SET consumed=TRUE WHERE account_id=?",account.id);}
   account.emailVerified=true;accounts.save(account);

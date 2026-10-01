@@ -34,7 +34,9 @@ class AccountRecoveryTest extends PostgresTestSupport {
         mvc.perform(post("/api/auth/verify-email").with(csrf()).contentType("application/json").content(verifyBody))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/auth/verify-email").with(csrf()).contentType("application/json").content(verifyBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailVerified").value(true));
         mvc.perform(get("/api/members").session(session)).andExpect(status().isOk());
         mvc.perform(post("/api/auth/forgot-password").with(csrf()).contentType("application/json")
                 .content("{\"email\":\"recovery@example.test\"}")).andExpect(status().isOk());
