@@ -11,7 +11,7 @@ MeetGrid coordinates weekly people availability with shared rooms: team reviews,
 - PostgreSQL-only durable storage, versioned Flyway migrations, Redis sessions and atomic rate-limit counters.
 - Spring Security password auth, Brevo verification/reset mail with encrypted PostgreSQL retry queue, password rotation/session revocation, optional verified Clerk social identities.
 - Admin content/policy/plan/account controls and audit history. Owner identifier: vivekni1224@nigam. No automatic role elevation from public signup.
-- India launch prices ₹299/₹599/₹999 per workspace monthly; admin-editable currency/limits and Stripe price validation. Preview remains limited and no-card.
+- India launch prices ₹299/₹599/₹999 per workspace monthly; admin-editable currency/limits, Razorpay Subscriptions, verified authorization, billing-state webhooks, paid-period expiry, and price validation. Preview remains limited and no-card. Plans & billing provides status refresh, cancellation, and supported card-plan changes.
 - Production PWA manifest, icons, public offline screen and install controls. Tauri desktop packaging and a manual Windows-build workflow.
 
 ## Run/configure
@@ -26,4 +26,4 @@ Read docs/PRICING.md for launch-price assumptions and break-even math; docs/DIST
 
 Directory members are scheduling records, not invited users with shared-account access. Availability and reservations repeat weekly; opening hours currently apply across all seven days. Changing a workspace timezone relabels existing wall-clock schedules. Utilization measures reserved time, not attendance. Email delivery is for authentication; meeting reminder automation, calendar-provider sync, public booking links, shared-workspace invitations and native system-browser OAuth are not implemented. JSON export is not automatic restore.
 
-Brevo sender/domain verification, Clerk providers/domains, Stripe account configuration, live provider checks, HTTPS, database/Redis provisioning and store submission require your external accounts. Placeholder credentials keep unconfigured integrations unavailable. No production readiness, store approval, or profit guarantee is claimed.
+Brevo sender/domain verification, Clerk providers/domains, Razorpay account configuration, live provider checks, HTTPS, database/Redis provisioning and store submission require your external accounts. Placeholder credentials keep unconfigured integrations unavailable. No production readiness, store approval, or profit guarantee is claimed.

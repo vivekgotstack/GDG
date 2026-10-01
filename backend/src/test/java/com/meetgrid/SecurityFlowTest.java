@@ -10,11 +10,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-@SpringBootTest(properties={"STRIPE_WEBHOOK_SECRET=integration-test-secret","STRIPE_PRICE_STUDIO=price_studio_test"})
+@SpringBootTest
 @AutoConfigureMockMvc
 class SecurityFlowTest extends PostgresTestSupport {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;
+ @Autowired com.meetgrid.repository.PaymentSubscriptionRepository billingRecords;
+ @org.springframework.test.context.bean.override.mockito.MockitoBean com.meetgrid.service.RazorpayClient payments;
  @Test void completePrivateWorkspaceAndBillingFlow() throws Exception {
+   org.mockito.Mockito.when(payments.webhookSecret()).thenReturn("integration-test-secret");
    mvc.perform(get("/api/members")).andExpect(status().isUnauthorized());
    mvc.perform(post("/api/auth/signup").contentType("application/json").content("{}"))
        .andExpect(status().isForbidden());
@@ -65,10 +68,14 @@ class SecurityFlowTest extends PostgresTestSupport {
    mvc.perform(put("/api/bookings/"+bookingId).session(other).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isNotFound());
    mvc.perform(post("/api/bookings").session(other).with(csrf()).contentType("application/json").content(reservation)).andExpect(status().isNotFound());
    mvc.perform(post("/api/billing/webhook").contentType("application/json").content("{}")).andExpect(status().isBadRequest());
-   String event="{\"type\":\"customer.subscription.created\",\"created\":100,\"data\":{\"object\":{\"id\":\"sub_test\",\"customer\":\"cus_test\",\"status\":\"active\",\"metadata\":{\"account_id\":\""+owner+"\"},\"items\":{\"data\":[{\"price\":{\"id\":\"price_studio_test\"}}]}}}}";
-   String timestamp=String.valueOf(java.time.Instant.now().getEpochSecond());var mac=javax.crypto.Mac.getInstance("HmacSHA256");mac.init(new javax.crypto.spec.SecretKeySpec("integration-test-secret".getBytes(java.nio.charset.StandardCharsets.UTF_8),"HmacSHA256"));
-   String signature=java.util.HexFormat.of().formatHex(mac.doFinal((timestamp+"."+event).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-   mvc.perform(post("/api/billing/webhook").header("Stripe-Signature","t="+timestamp+",v1="+signature).contentType("application/json").content(event)).andExpect(status().isOk());
+   var subscription=new com.meetgrid.model.PaymentSubscription();subscription.id="sub_test";subscription.ownerId=owner;subscription.planId="studio";subscription.providerPlanId="plan_studio";subscription.keyId="rzp_test_example";subscription.amount=59900;subscription.currency="INR";billingRecords.saveAndFlush(subscription);
+   var billedAccount=testAccounts.findById(owner).orElseThrow();billedAccount.subscriptionId="sub_test";testAccounts.saveAndFlush(billedAccount);
+   org.mockito.Mockito.when(payments.get("/subscriptions/sub_test")).thenReturn(json.readTree("{\"id\":\"sub_test\",\"plan_id\":\"plan_studio\",\"quantity\":1,\"status\":\"active\",\"paid_count\":1,\"current_end\":"+java.time.Instant.now().plusSeconds(86400).getEpochSecond()+"}"));
+   String event="{\"event\":\"subscription.activated\",\"payload\":{\"subscription\":{\"entity\":{\"id\":\"sub_test\"}}}}";
+   var mac=javax.crypto.Mac.getInstance("HmacSHA256");mac.init(new javax.crypto.spec.SecretKeySpec("integration-test-secret".getBytes(java.nio.charset.StandardCharsets.UTF_8),"HmacSHA256"));
+   String signature=java.util.HexFormat.of().formatHex(mac.doFinal(event.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+   mvc.perform(post("/api/billing/webhook").header("X-Razorpay-Signature",signature).contentType("application/json").content(event)).andExpect(status().isOk());
+   mvc.perform(post("/api/billing/webhook").header("X-Razorpay-Signature",signature).contentType("application/json").content(event)).andExpect(status().isOk());
    mvc.perform(get("/api/auth/me").session(session)).andExpect(jsonPath("$.plan").value("studio"));
    mvc.perform(get("/api/auth/me").session(other)).andExpect(jsonPath("$.plan").value("free"));
    mvc.perform(delete("/api/bookings/"+bookingId).session(session).with(csrf())).andExpect(status().isNoContent());

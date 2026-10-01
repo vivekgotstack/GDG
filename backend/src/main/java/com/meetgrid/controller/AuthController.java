@@ -19,8 +19,8 @@ import java.util.*;
 
 @RestController @RequestMapping("/api")
 public class AuthController {
- private final AccountRepository accounts; private final PasswordEncoder encoder; private final com.meetgrid.config.SessionLogin sessions;private final com.meetgrid.service.AccountSecurity security;private final com.meetgrid.service.RateLimits limits;private final com.meetgrid.config.AdminBootstrap bootstrap;
- public AuthController(AccountRepository a,PasswordEncoder p,com.meetgrid.config.SessionLogin c,com.meetgrid.config.AdminBootstrap b,com.meetgrid.service.AccountSecurity s,com.meetgrid.service.RateLimits l){accounts=a;encoder=p;sessions=c;bootstrap=b;security=s;limits=l;}
+ private final AccountRepository accounts; private final PasswordEncoder encoder; private final com.meetgrid.config.SessionLogin sessions;private final com.meetgrid.service.AccountSecurity security;private final com.meetgrid.service.RateLimits limits;private final com.meetgrid.config.AdminBootstrap bootstrap;private final com.meetgrid.repository.PaymentSubscriptionRepository subscriptions;
+ public AuthController(AccountRepository a,PasswordEncoder p,com.meetgrid.config.SessionLogin c,com.meetgrid.config.AdminBootstrap b,com.meetgrid.service.AccountSecurity s,com.meetgrid.service.RateLimits l,com.meetgrid.repository.PaymentSubscriptionRepository sub){accounts=a;encoder=p;sessions=c;bootstrap=b;security=s;limits=l;subscriptions=sub;}
  public record Signup(@NotBlank @Email @Size(max=254) String email,@NotBlank @Size(min=12,max=72) String password,@NotBlank @Size(max=80) String name,@NotBlank @Size(max=100) String workspaceName,@NotBlank @Size(max=80) String timezone){}
  public record Login(@NotBlank @Email @Size(max=254) String email,@NotBlank @Size(max=72) String password){}
  public record Profile(@NotBlank @Size(max=80) String name,@NotBlank @Size(max=100) String workspaceName,@NotBlank @Size(max=80) String timezone){}
@@ -44,7 +44,7 @@ public class AuthController {
    if(a==null || a.suspended || !a.hasPassword || !encoder.matches(input.password(),a.passwordHash))throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect, or the account is unavailable.");
    sessions.authenticate(a,req,res);return UserView.from(a);
  }
- @GetMapping("/auth/me") public UserView me(){return UserView.from(current());}
+ @GetMapping("/auth/me") public UserView me(){var a=current();var v=UserView.from(a);return new UserView(v.id(),v.email(),v.name(),v.workspaceName(),v.timezone(),com.meetgrid.service.PlanService.effectiveTier(a,subscriptions),v.role(),v.emailVerified(),v.hasPassword(),v.socialLinked());}
  @PutMapping("/workspace") @Transactional public UserView profile(@Valid @RequestBody Profile input){validateTimezone(input.timezone());var a=current();a.displayName=input.name().strip();a.workspaceName=input.workspaceName().strip();a.timezone=input.timezone();return UserView.from(accounts.save(a));}
  private Account current(){return accounts.findById(WorkspaceIdentity.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Sign in again."));}
  private void validateTimezone(String tz){try{java.time.ZoneId.of(tz);}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose a valid IANA timezone, such as Asia/Kolkata.");}}

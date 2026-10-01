@@ -1,77 +1,28 @@
 package com.meetgrid.controller;
-import com.meetgrid.service.PlanService;
-import com.meetgrid.repository.*;
+
 import com.meetgrid.config.WorkspaceIdentity;
-import com.fasterxml.jackson.databind.*;
-import org.springframework.core.env.Environment;
-import org.springframework.http.*;
+import com.meetgrid.service.PlanService;
+import com.meetgrid.service.RazorpayBilling;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import java.util.*;
-import java.nio.charset.StandardCharsets;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.List;
+import java.util.Map;
 
 @RestController @RequestMapping("/api")
 public class BillingController {
- private final PlanService plans;private final Environment env;private final AccountRepository accounts;private final ObjectMapper json;
- public BillingController(PlanService p,Environment e,AccountRepository a,ObjectMapper j){plans=p;env=e;accounts=a;json=j;}
+ private final PlanService plans;private final RazorpayBilling billing;
+ public BillingController(PlanService p,RazorpayBilling b){plans=p;billing=b;}
  @GetMapping("/plans") public List<PlanService.Plan> plans(){return plans.all();}
- public record Checkout(String plan){}
- @PostMapping("/billing/checkout") public Map<String,String> checkout(@RequestBody Checkout input){
-   var plan=plans.all().stream().filter(p->p.id().equals(input.plan())&&!p.id().equals("free")).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose a paid plan."));
-   if(!plan.checkoutEnabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Paid checkout is not configured yet. Your preview workspace remains available.");
-   // Never charge a Stripe amount that differs from the price displayed on the site.
-   try {
-     var price=RestClient.create("https://api.stripe.com/v1").get().uri("/prices/"+plans.priceId(plan.id())).header("Authorization","Bearer "+env.getProperty("meetgrid.billing.secret-key","")).retrieve().body(JsonNode.class);
-     if(price==null||!price.path("active").asBoolean()||price.path("unit_amount").asInt(-1)!=plan.monthlyPrice()*100||!price.path("currency").asText().equalsIgnoreCase(plan.currency())||!price.path("recurring").path("interval").asText().equals("month")||price.path("recurring").path("interval_count").asInt()!=1)
-       throw new ResponseStatusException(HttpStatus.CONFLICT,"Checkout price needs to be aligned with the displayed monthly plan. Contact support.");
-   }catch(ResponseStatusException e){throw e;}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Could not verify the current checkout price. Please try again.");}
-   var account=accounts.findById(WorkspaceIdentity.id()).orElseThrow();
-   if(account.subscriptionId!=null)throw new ResponseStatusException(HttpStatus.CONFLICT,"Manage your existing subscription through billing settings.");
-   var form=new LinkedMultiValueMap<String,String>();form.add("mode","subscription");form.add("line_items[0][price]",plans.priceId(plan.id()));form.add("line_items[0][quantity]","1");
-   form.add("client_reference_id",account.id);form.add("subscription_data[metadata][account_id]",account.id);
-   if(account.stripeCustomer!=null)form.add("customer",account.stripeCustomer);else form.add("customer_email",account.email);
-   String origin=env.getProperty("meetgrid.app-url","http://localhost:3000");form.add("success_url",origin+"/app/billing?checkout=success");form.add("cancel_url",origin+"/pricing");
-   return Map.of("url",stripe("checkout/sessions",form).path("url").asText());
- }
- @PostMapping("/billing/portal") public Map<String,String> portal(){
-   var a=accounts.findById(WorkspaceIdentity.id()).orElseThrow();if(a.stripeCustomer==null)throw new ResponseStatusException(HttpStatus.CONFLICT,"No billing account yet.");
-   var form=new LinkedMultiValueMap<String,String>();form.add("customer",a.stripeCustomer);form.add("return_url",env.getProperty("meetgrid.app-url","http://localhost:3000")+"/app/billing");return Map.of("url",stripe("billing_portal/sessions",form).path("url").asText());
- }
- private JsonNode stripe(String path,LinkedMultiValueMap<String,String> form){
-   String key=env.getProperty("meetgrid.billing.secret-key","");if(key.isBlank()||key.startsWith("REPLACE_"))throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Billing is not configured.");
-   try{return RestClient.create("https://api.stripe.com/v1").post().uri("/"+path).header("Authorization","Bearer "+key).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form).retrieve().body(JsonNode.class);}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Payment provider is unavailable or billing configuration needs attention.");}
- }
- @PostMapping("/billing/webhook") @Transactional public Map<String,Boolean> webhook(@RequestBody String body,@RequestHeader(value="Stripe-Signature",defaultValue="") String signature){
-   String secret=env.getProperty("meetgrid.billing.webhook-secret","");if(secret.isBlank()||secret.startsWith("REPLACE_"))throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
-   JsonNode event;
-   try {
-     var parts=Arrays.stream(signature.split(",")).map(s->s.split("=",2)).filter(p->p.length==2).toList();
-     String ts=parts.stream().filter(p->p[0].equals("t")).findFirst().orElseThrow()[1];
-     if(Math.abs(java.time.Instant.now().getEpochSecond()-Long.parseLong(ts))>300)throw new IllegalArgumentException();
-     var mac=Mac.getInstance("HmacSHA256");mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),"HmacSHA256"));
-     byte[] expected=mac.doFinal((ts+"."+body).getBytes(StandardCharsets.UTF_8));
-     boolean valid=parts.stream().filter(p->p[0].equals("v1")).anyMatch(p->{try{return java.security.MessageDigest.isEqual(expected,HexFormat.of().parseHex(p[1]));}catch(Exception e){return false;}});
-     if(!valid)throw new IllegalArgumentException();event=json.readTree(body);
-   }catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid webhook signature.");}
-   String type=event.path("type").asText();
-   if(type.equals("customer.subscription.created")||type.equals("customer.subscription.updated")||type.equals("customer.subscription.deleted")){
-     var subscription=event.path("data").path("object");String accountId=subscription.path("metadata").path("account_id").asText();
-     var account=accounts.lockById(accountId).orElse(null);
-     if(account!=null && event.path("created").asLong()>=account.billingEventTime){
-       String price=subscription.path("items").path("data").path(0).path("price").path("id").asText();
-       String tier=plans.all().stream().filter(p->!p.id().equals("free")&&!plans.priceId(p.id()).isBlank()&&plans.priceId(p.id()).equals(price)).map(PlanService.Plan::id).findFirst().orElse("free");
-       String status=subscription.path("status").asText();boolean active=!type.endsWith("deleted")&&(status.equals("active")||status.equals("trialing"));
-       String subId=subscription.path("id").asText();
-       if(account.subscriptionId==null||account.subscriptionId.equals(subId)){
-         account.plan=active?tier:"free";account.stripeCustomer=subscription.path("customer").asText();account.subscriptionId=type.endsWith("deleted")?null:subId;account.billingEventTime=event.path("created").asLong();accounts.save(account);
-       }
-     }
-   }
-   return Map.of("received",true);
- }
+ public record Checkout(@NotBlank @Pattern(regexp="starter|studio|scale") String plan){}
+ public record Verification(@NotBlank @Pattern(regexp="sub_[a-zA-Z0-9]{1,80}") String razorpay_subscription_id,@NotBlank @Pattern(regexp="pay_[a-zA-Z0-9]{1,80}") String razorpay_payment_id,@NotBlank @Pattern(regexp="[a-fA-F0-9]{64}") String razorpay_signature){}
+ @PostMapping("/billing/checkout") public RazorpayBilling.Checkout checkout(@Valid @RequestBody Checkout input){return billing.checkout(WorkspaceIdentity.id(),input.plan());}
+ @PostMapping("/billing/verify") public RazorpayBilling.Status verify(@Valid @RequestBody Verification input){return billing.verify(WorkspaceIdentity.id(),input.razorpay_subscription_id(),input.razorpay_payment_id(),input.razorpay_signature());}
+ @GetMapping("/billing/status") public Map<String,Object> status(){var status=billing.status(WorkspaceIdentity.id(),false);return status==null?Map.of():Map.of("subscription",status);}
+ @PostMapping("/billing/refresh") public Map<String,Object> refresh(){var status=billing.status(WorkspaceIdentity.id(),true);return status==null?Map.of():Map.of("subscription",status);}
+ @PostMapping("/billing/cancel") public RazorpayBilling.Status cancel(){return billing.cancel(WorkspaceIdentity.id());}
+ @PostMapping("/billing/cancel-change") public RazorpayBilling.Status cancelChange(){return billing.cancelUpdate(WorkspaceIdentity.id());}
+ @PostMapping("/billing/change") public RazorpayBilling.Status change(@Valid @RequestBody Checkout input){return billing.change(WorkspaceIdentity.id(),input.plan());}
+ @PostMapping("/billing/webhook") public Map<String,Boolean> webhook(@RequestBody byte[] body,@RequestHeader(value="X-Razorpay-Signature",defaultValue="") String signature){billing.webhook(body,signature);return Map.of("received",true);}
 }

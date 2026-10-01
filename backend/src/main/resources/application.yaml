@@ -41,6 +41,10 @@ spring:
   session:
     redis:
       namespace: meetgrid:sessions
+  task:
+    scheduling:
+      pool:
+        size: 3
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -65,11 +69,13 @@ meetgrid:
     email: ${ADMIN_EMAIL:vivekni1224@nigam}
     bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:REPLACE_ADMIN_BOOTSTRAP_PASSWORD}
   billing:
-    secret-key: ${STRIPE_SECRET_KEY:REPLACE_STRIPE_SECRET_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET:REPLACE_STRIPE_WEBHOOK_SECRET}
-    price-starter: ${STRIPE_PRICE_STARTER:REPLACE_STRIPE_PRICE_STARTER}
-    price-studio: ${STRIPE_PRICE_STUDIO:REPLACE_STRIPE_PRICE_STUDIO}
-    price-scale: ${STRIPE_PRICE_SCALE:REPLACE_STRIPE_PRICE_SCALE}
+    key-id: ${RAZORPAY_KEY_ID:REPLACE_RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET:REPLACE_RAZORPAY_KEY_SECRET}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:REPLACE_RAZORPAY_WEBHOOK_SECRET}
+    price-starter: ${RAZORPAY_PLAN_STARTER:REPLACE_RAZORPAY_PLAN_STARTER}
+    price-studio: ${RAZORPAY_PLAN_STUDIO:REPLACE_RAZORPAY_PLAN_STUDIO}
+    price-scale: ${RAZORPAY_PLAN_SCALE:REPLACE_RAZORPAY_PLAN_SCALE}
+    subscription-cycles: ${RAZORPAY_SUBSCRIPTION_CYCLES:120}
   demo-reset-enabled: false
   app-url: ${APP_URL:http://127.0.0.1:3000}
   proxy-secret: ${PROXY_SHARED_SECRET:REPLACE_SHARED_PROXY_SECRET}
