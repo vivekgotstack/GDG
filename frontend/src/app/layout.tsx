@@ -15,7 +15,14 @@ import { PwaRegistration } from '@/components/product/install-app';
 export const viewport: Viewport = { themeColor: '#6756A7' };
 export const metadata: Metadata = {
   appleWebApp:{capable:true,statusBarStyle:'default',title:'MeetGrid'},
-  icons:{apple:'/icons/apple-touch-icon.png'},
+  icons:{
+    icon:[
+      {url:'/icon.svg?v=meetgrid-purple-2',type:'image/svg+xml'},
+      {url:'/icons/favicon-32.png?v=meetgrid-purple-2',type:'image/png',sizes:'32x32'},
+    ],
+    shortcut:'/favicon.ico?v=meetgrid-purple-2',
+    apple:'/icons/apple-touch-icon.png',
+  },
   title: `${process.env.NEXT_PUBLIC_APP_NAME || 'MeetGrid'} — Find your common ground`,
   description: process.env.NEXT_PUBLIC_APP_TAGLINE || 'One thoughtful workspace for team availability, rooms, and recurring meetings.',
 };
