@@ -27,7 +27,9 @@ class AdminFlowTest extends PostgresTestSupport {
   verifyFixture("rbac-user@example.test");
   mvc.perform(get("/api/admin/users").session(user)).andExpect(status().isForbidden());
   mvc.perform(put("/api/admin/site").session(user).with(csrf()).contentType("application/json").content("{\"version\":0,\"values\":{}}")).andExpect(status().isForbidden());
-  mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"One\",\"Two\",\"Three\",\"Four\",\"Five\",\"Six\"]}")).andExpect(status().isConflict());
+  mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"One\",\"Two\"]}")).andExpect(status().isForbidden());
+  var paid=testAccounts.findById(userId).orElseThrow();paid.plan="starter";testAccounts.saveAndFlush(paid);
+  mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"One\",\"Two\",\"Three\",\"Four\",\"Five\",\"Six\",\"Seven\",\"Eight\",\"Nine\",\"Ten\",\"Eleven\"]}")).andExpect(status().isConflict());
   mvc.perform(get("/api/members").session(user)).andExpect(jsonPath("$.length()").value(0));
   mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"One\",\"Two\"]}")).andExpect(status().isCreated()).andExpect(jsonPath("$.length()").value(2));
   mvc.perform(post("/api/tools/import-members").session(user).with(csrf()).contentType("application/json").content("{\"names\":[\"Three\",\"one\"]}")).andExpect(status().isConflict());

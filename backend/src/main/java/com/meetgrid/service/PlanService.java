@@ -8,7 +8,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 @Service
 public class PlanService {
- public record Plan(String id,String name,String description,int monthlyPrice,String currency,int members,int rooms,int bookings,int presets,boolean checkoutEnabled,long version){}
+ public record Plan(String id,String name,String description,int monthlyPrice,String currency,int members,int rooms,int bookings,int presets,boolean checkoutEnabled,long version){public Set<String> getFeatures(){return featuresFor(id);}}
+ public record Entitlements(String planId,String planName,boolean admin,Set<String> features){}
+ public static Set<String> featuresFor(String tier){return switch(tier){case "starter"->Set.of("bulk_import");case "studio"->Set.of("bulk_import","insights");case "scale"->Set.of("bulk_import","insights","operations_reports");default->Set.of();};}
  private final Environment env;private final AccountRepository accounts;private final MemberRepository members;private final RoomRepository rooms;private final BookingRepository bookings;private final PlanRepository definitions;private final TemplateRepository templates;private final PaymentSubscriptionRepository subscriptions;private final RazorpayClient payments;
  public PlanService(Environment e,AccountRepository a,MemberRepository m,RoomRepository r,BookingRepository b,PlanRepository d,TemplateRepository t,PaymentSubscriptionRepository s,RazorpayClient p){env=e;accounts=a;members=m;rooms=r;bookings=b;definitions=d;templates=t;subscriptions=s;payments=p;}
  public String priceId(String tier){return env.getProperty("meetgrid.billing.price-"+tier.toLowerCase(Locale.ROOT),"");}
@@ -16,10 +18,16 @@ public class PlanService {
  private boolean configured(String value){return !value.isBlank()&&!value.startsWith("REPLACE_");}
  public Plan preview(){return new Plan("free","Preview","Explore the workflow before choosing a plan.",0,"USD",5,2,10,3,false,0);}
  public static String effectiveTier(com.meetgrid.model.Account account,PaymentSubscriptionRepository subscriptions){
-  if(account.subscriptionId!=null){var subscription=subscriptions.findById(account.subscriptionId).orElse(null);if(subscription!=null&&subscription.ownerId.equals(account.id))return subscription.hasAccess(java.time.Instant.now())?subscription.planId:"free";}
+  if(account.subscriptionId!=null){var subscription=subscriptions.findById(account.subscriptionId).orElse(null);return subscription!=null&&subscription.ownerId.equals(account.id)&&subscription.hasAccess(java.time.Instant.now())?subscription.planId:"free";}
   return account.plan;
  }
  public Plan current(){String tier=accounts.findById(WorkspaceIdentity.id()).map(a->effectiveTier(a,subscriptions)).orElse("free");return all().stream().filter(p->p.id().equals(tier)).findFirst().orElse(preview());}
+ public Entitlements entitlements(){var a=accounts.findById(WorkspaceIdentity.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED));var p=current();boolean admin=a.role.equals("ADMIN");return new Entitlements(p.id(),p.name(),admin,admin?featuresFor("scale"):featuresFor(p.id()));}
+ public void requireFeature(String feature){
+  var access=entitlements();if(access.features().contains(feature))return;
+  String required=switch(feature){case "bulk_import"->"Gather";case "insights"->"Studio";case "operations_reports"->"Collective";default->throw new IllegalArgumentException("Unknown plan feature");};
+  throw new ResponseStatusException(HttpStatus.FORBIDDEN,required+" or higher is required for this tool. Choose a plan in Plans & billing.");
+ }
  public void requireCapacity(String resource){requireCapacity(resource,1);}
  public void lockWorkspace(){if(!WorkspaceIdentity.id().equals("legacy"))accounts.lockById(WorkspaceIdentity.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED));}
  public void requireCapacity(String resource,int adding){

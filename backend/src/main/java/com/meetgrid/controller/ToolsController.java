@@ -19,7 +19,7 @@ public class ToolsController {
  public record Import(@NotEmpty @Size(max=100) List<@NotBlank @Size(max=80) String> names){}
  @PostMapping("/import-members") @Transactional @ResponseStatus(HttpStatus.CREATED)
  public List<MemberView> importMembers(@Valid @RequestBody Import input){
-  String owner=WorkspaceIdentity.id();accounts.lockById(owner).orElseThrow();
+  String owner=WorkspaceIdentity.id();accounts.lockById(owner).orElseThrow();plans.requireFeature("bulk_import");
   var existing=new HashSet<String>();members.findByOwnerId(owner).forEach(m->existing.add(m.name.strip().toLowerCase(Locale.ROOT)));
   var names=input.names().stream().map(String::strip).toList();
   for(String name:names)if(!existing.add(name.toLowerCase(Locale.ROOT)))throw new ResponseStatusException(HttpStatus.CONFLICT,"Duplicate or existing name: "+name+". Refresh the preview and try again.");
@@ -31,4 +31,5 @@ public class ToolsController {
   String id=WorkspaceIdentity.id();return Map.of("schemaVersion",1,"exportedAt",java.time.Instant.now().toString(),"workspace",AuthController.UserView.from(accounts.findById(id).orElseThrow()),"members",members.findByOwnerId(id).stream().map(MemberView::from).toList(),"rooms",rooms.findByOwnerId(id).stream().map(RoomView::from).toList(),"bookings",bookings.findByRoomOwnerId(id).stream().map(BookingView::from).toList(),"presets",templates.findByOwnerId(id));
  }
  @GetMapping("/usage") public Map<String,Object> usage(){String id=WorkspaceIdentity.id();return Map.of("plan",plans.current(),"members",members.countByOwnerId(id),"rooms",rooms.countByOwnerId(id),"bookings",bookings.countByRoomOwnerId(id),"presets",templates.countByOwnerId(id));}
+ @GetMapping("/entitlements") public PlanService.Entitlements entitlements(){return plans.entitlements();}
 }
